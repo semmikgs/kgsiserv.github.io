@@ -11,84 +11,91 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #003F7F 0%, #005CAD 100%);
             min-height: 100vh;
-            padding: 32px 24px;
+            padding: 32px 20px;
             color: #1f2937;
         }
 
         .container {
-            max-width: 960px;
+            max-width: 1100px;
             margin: 0 auto;
         }
 
-        .header-row {
+        .header {
+            background: white;
+            padding: 24px 32px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .header-inner {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             gap: 32px;
-            margin-bottom: 40px;
             flex-wrap: wrap;
         }
 
         .header-text {
             flex: 1;
-            min-width: 300px;
+            min-width: 320px;
         }
 
         .header h1 {
             color: #003F7F;
-            font-size: 2.1rem;
-            margin-bottom: 8px;
+            font-size: 28px;
+            margin-bottom: 6px;
         }
 
         .header-subtitle {
-            color: #4b5563;
-            font-size: 1rem;
+            color: #6b7280;
+            font-size: 15px;
             line-height: 1.5;
         }
 
-        .action-button {
-            background: linear-gradient(135deg, #003F7F 0%, #005CAD 100%);
-            color: white;
-            font-weight: 600;
-            font-size: 1.1rem;
-            padding: 16px 28px;
-            border-radius: 10px;
-            text-decoration: none;
-            box-shadow: 0 6px 18px rgba(0,63,127,0.35);
+        .action-btn {
             display: inline-flex;
             align-items: center;
             gap: 10px;
-            transition: all 0.22s ease;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #003F7F 0%, #005CAD 100%);
+            color: white;
+            font-weight: 600;
+            font-size: 15px;
+            text-decoration: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,63,127,0.3);
+            transition: all 0.3s ease;
             white-space: nowrap;
         }
 
-        .action-button:hover {
+        .action-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 24px rgba(0,63,127,0.5);
+            box-shadow: 0 6px 16px rgba(0,63,127,0.4);
         }
 
         .content-card {
-            background: rgba(255,255,255,0.96);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(220,220,230,0.4);
-            border-radius: 14px;
-            padding: 32px;
-            box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+            background: white;
+            padding: 28px 32px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-left: 5px solid #003F7F;
         }
 
         .content-card h2 {
             color: #003F7F;
-            font-size: 1.45rem;
-            margin-bottom: 1.6rem;
+            font-size: 22px;
+            margin-bottom: 20px;
         }
 
         .steps {
-            font-size: 1.05rem;
-            line-height: 1.75;
+            font-size: 16px;
+            line-height: 1.7;
         }
 
         .step {
-            margin-bottom: 1.4rem;
+            margin-bottom: 18px;
         }
 
         .step strong {
@@ -97,33 +104,33 @@
         }
 
         .category-list {
-            margin: 1.2rem 0 1.8rem;
-            padding-left: 1.4rem;
+            margin: 12px 0 20px 24px;
+            padding-left: 0;
+            list-style: none;
         }
 
         .category-list li {
-            margin-bottom: 0.6rem;
+            margin-bottom: 8px;
             color: #1e40af;
         }
 
         .hint {
             text-align: center;
-            color: #d1d5db;
-            font-size: 0.95rem;
-            margin-top: 2rem;
-            opacity: 0.9;
+            color: #6b7280;
+            font-size: 14px;
+            margin-top: 24px;
         }
 
-        @media (max-width: 720px) {
-            .header-row {
+        @media (max-width: 768px) {
+            .header-inner {
                 flex-direction: column;
-                align-items: stretch;
+                gap: 20px;
             }
-            .action-button {
+            .action-btn {
                 width: 100%;
                 justify-content: center;
-                padding: 16px;
-                font-size: 1.05rem;
+                padding: 14px;
+                font-size: 16px;
             }
         }
     </style>
@@ -132,21 +139,23 @@
 
 <div class="container">
 
-    <div class="header-row">
-        <div class="header-text">
-            <h1>LEB – Änderung melden</h1>
-            <p class="header-subtitle">
-                Änderungen in LEB meldest du schnell über das IServ-Störungsmodul.<br>
-                Wähle einfach die passende Kategorie – der Rest ist vorgefertigt.
-            </p>
-        </div>
+    <div class="header">
+        <div class="header-inner">
+            <div class="header-text">
+                <h1>LEB – Änderung melden</h1>
+                <p class="header-subtitle">
+                    Änderungen in LEB meldest du schnell über das IServ-Störungsmodul.<br>
+                    Wähle einfach die passende Kategorie – der Rest ist vorgefertigt.
+                </p>
+            </div>
 
-        <a href="https://kgsschwarmstedt.de/iserv/report/add/" target="_blank" class="action-button">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" width="22" height="22">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            Jetzt Meldung erstellen
-        </a>
+            <a href="https://kgsschwarmstedt.de/iserv/report/add/" target="_blank" class="action-btn">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" width="18" height="18">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Jetzt Meldung erstellen
+            </a>
+        </div>
     </div>
 
     <div class="content-card">
@@ -162,9 +171,9 @@
             </div>
 
             <div class="step">
-                <strong>3.</strong> Wähle im Dropdown „Kategorie“ einen der folgenden Einträge<br>
-                (schnellste Methode: „LEB“ eintippen):
-                
+                <strong>3.</strong> Wähle im Dropdown „Kategorie“ einen der folgenden Einträge  
+                (schnellste Methode: einfach „LEB“ eintippen):
+
                 <ul class="category-list">
                     <li>LEB – Schüler hinzufügen</li>
                     <li>LEB – Schüler entfernen</li>
