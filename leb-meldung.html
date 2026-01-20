@@ -56,46 +56,38 @@
         .content-card h2 {
             color: #003F7F;
             font-size: 1.5rem;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.8rem;
             text-align: center;
         }
 
-        .content-card ol {
-            counter-reset: step;
-            list-style: none;
-            padding-left: 2.4rem;
+        .steps {
             font-size: 1.05rem;
-            line-height: 1.7;
+            line-height: 1.8;
         }
 
-        .content-card ol li {
-            position: relative;
-            margin-bottom: 1.2rem;
+        .step {
+            margin-bottom: 1.6rem;
         }
 
-        .content-card ol li::before {
-            counter-increment: step;
-            content: counter(step) ".";
-            position: absolute;
-            left: -2.4rem;
+        .step strong {
             color: #003F7F;
-            font-weight: bold;
+            font-weight: 600;
         }
 
         .leb-categories {
             list-style: none;
             padding: 0;
-            margin: 1.25rem 0 1.75rem;
+            margin: 1.4rem 0 2rem;
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 0.9rem;
+            gap: 1rem;
         }
 
         .leb-categories li {
             background: #eff6ff;
             border: 1px solid #bfdbfe;
             border-radius: 8px;
-            padding: 0.9rem 1.1rem;
+            padding: 1rem 1.2rem;
             text-align: center;
             font-size: 0.98rem;
             color: #1e40af;
@@ -160,13 +152,19 @@
     <div class="content-card">
         <h2>So funktioniert’s (ca. 25 Sekunden)</h2>
 
-        <ol>
-            <li>Klicke auf den großen Button unten.</li>
+        <div class="steps">
+            <div class="step">
+                <strong>1.</strong> Klicke auf den großen Button unten.
+            </div>
 
-            <li>IServ öffnet das Formular „Neue Störungsmeldung“.</li>
+            <div class="step">
+                <strong>2.</strong> IServ öffnet das Formular „Neue Störungsmeldung“.
+            </div>
 
-            <li>Wähle im Dropdown „Kategorie“ einen der folgenden Einträge<br>
+            <div class="step">
+                <strong>3.</strong> Wähle im Dropdown „Kategorie“ einen der folgenden Einträge<br>
                 (schnellste Methode: einfach „LEB“ eintippen):
+                
                 <ul class="leb-categories">
                     <li>LEB – Schüler hinzufügen</li>
                     <li>LEB – Schüler entfernen</li>
@@ -175,12 +173,16 @@
                     <li>LEB – AG nicht teilgenommen</li>
                     <li>LEB – Sonstiges</li>
                 </ul>
-            </li>
+            </div>
 
-            <li>Titel & Beschreibung ergänzen (Formatvorschlag steht meist schon drin)</li>
+            <div class="step">
+                <strong>4.</strong> Titel & Beschreibung ergänzen (Formatvorschlag steht meist schon drin)
+            </div>
 
-            <li>Auf „Absenden“ klicken → Meldung landet direkt beim Team.</li>
-        </ol>
+            <div class="step">
+                <strong>5.</strong> Auf „Absenden“ klicken → Meldung landet direkt beim Team.
+            </div>
+        </div>
     </div>
 
     <p class="hint">Du bleibst komplett im gewohnten IServ – kein neuer Login nötig.</p>
