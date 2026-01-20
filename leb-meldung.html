@@ -5,93 +5,180 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LEB – Änderung melden | KGS Digital</title>
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-    background: linear-gradient(135deg, #003F7F 0%, #005CAD 100%);
-    min-height: 100vh;
-    padding: 40px 20px;                /* mehr Luft oben → Gradient wird sofort sichtbar */
-    margin: 0;
-}
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #003F7F 0%, #005CAD 100%);
+            min-height: 100vh;
+            padding: 40px 20px 120px;   /* Extra Platz unten für fixed Button */
+            color: #1f2937;
+        }
 
-.container {
-    max-width: 1000px;                 /* enger → mehr blauer Rand links/rechts */
-    margin: 0 auto;
-    background: transparent;           /* wichtig: kein Weiß über den Body legen */
-}
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
 
-/* Header etwas leichter / schwebender machen */
-.header {
-    background: rgba(255, 255, 255, 0.96);   /* leicht durchsichtig → Gradient schimmert durch */
-    backdrop-filter: blur(12px);             /* Frosted-Glass-Look – sehr nah an modernen Designs */
-    border: 1px solid rgba(255,255,255,0.4);
-    box-shadow: 0 12px 40px rgba(0,0,0,0.18);
-}
+        .header {
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.4);
+            border-radius: 16px;
+            padding: 28px 36px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+            margin-bottom: 40px;
+            text-align: center;
+        }
 
-/* Content-Karte ebenfalls angepasst */
-.content-card {
-    background: rgba(255, 255, 255, 0.97);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(220,220,230,0.5);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
-    
-    .big-action {
-    position: fixed;
-    bottom: env(safe-area-inset-bottom, 24px);   /* respektiert iPhone/iPad Home-Bar */
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1000;
-    
-    width: 90%;
-    max-width: 540px;
-    padding: 18px 32px;
-    
-    background: linear-gradient(135deg, #003F7F 0%, #005CAD 100%);
-    color: white;
-    font-size: 1.18rem;
-    font-weight: 600;
-    text-align: center;
-    text-decoration: none;
-    border-radius: 12px;
-    box-shadow: 0 8px 28px rgba(0, 63, 127, 0.45);
-    
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    
-    transition: all 0.25s ease;
-}
+        .header h1 {
+            color: #003F7F;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
 
-.big-action:hover,
-.big-action:active {
-    transform: translateX(-50%) translateY(-4px);
-    box-shadow: 0 14px 36px rgba(0, 63, 127, 0.55);
-}
+        .header-subtitle {
+            color: #6b7280;
+            font-size: 15px;
+            line-height: 1.6;
+        }
 
-/* iPad & Mobile – fast full-width, mehr Sicherheit */
-@media (max-width: 1024px) {
-    .big-action {
-        width: 92%;
-        padding: 16px 28px;
-        font-size: 1.1rem;
-        bottom: calc(env(safe-area-inset-bottom, 16px) + 8px);
-        border-radius: 16px;           /* etwas runder auf Touch */
-    }
-}
-}
+        .content-card {
+            background: rgba(255, 255, 255, 0.97);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(220,220,230,0.5);
+            border-radius: 14px;
+            padding: 32px 36px;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+            margin-bottom: 40px;
+        }
+
+        .content-card h2 {
+            color: #003F7F;
+            font-size: 22px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .content-card ol {
+            font-size: 16px;
+            line-height: 1.8;
+            padding-left: 24px;
+            margin-bottom: 28px;
+        }
+
+        .content-card li {
+            margin-bottom: 16px;
+        }
+
+        /* Tabelle für LEB-Kategorien – 3 Spalten Desktop, responsive */
+        .categories-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 15px;
+        }
+
+        .categories-table td {
+            padding: 14px 16px;
+            text-align: center;
+            background: #f0f7ff;
+            border: 1px solid #d0e4ff;
+            border-radius: 8px;
+        }
+
+        .categories-table tr td:first-child {
+            border-left: none;
+        }
+
+        .categories-table tr td:last-child {
+            border-right: none;
+        }
+
+        /* Responsive: ab 768px 3 Spalten, darunter 2 oder 1 */
+        @media (max-width: 768px) {
+            .categories-table td {
+                display: block;
+                width: 100%;
+                margin-bottom: 12px;
+                border-left: none;
+                border-right: none;
+            }
+        }
+
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .categories-table td {
+                display: inline-block;
+                width: 48%;
+                margin: 0.5%;
+            }
+        }
+
+        /* Fixed Button */
+        .big-action {
+            position: fixed;
+            bottom: env(safe-area-inset-bottom, 24px);
+            bottom: calc(env(safe-area-inset-bottom) + 16px);
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+
+            width: 90%;
+            max-width: 560px;
+            padding: 18px 32px;
+
+            background: linear-gradient(135deg, #003F7F 0%, #005CAD 100%);
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 600;
+            text-decoration: none;
+            border-radius: 14px;
+            box-shadow: 0 10px 32px rgba(0, 63, 127, 0.5);
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+
+            transition: all 0.25s ease;
+        }
+
+        .big-action:hover, .big-action:active {
+            transform: translateX(-50%) translateY(-5px);
+            box-shadow: 0 16px 40px rgba(0, 63, 127, 0.6);
+        }
+
+        .big-action svg {
+            width: 26px;
+            height: 26px;
+        }
+
+        @media (max-width: 1024px) {
+            .big-action {
+                width: 92%;
+                padding: 16px 28px;
+                font-size: 1.12rem;
+                border-radius: 16px;
+            }
+        }
+
+        .hint {
+            text-align: center;
+            color: #d1d5db;
+            font-size: 0.95rem;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
-
     <div class="container">
 
         <div class="header">
-            <div class="header-top">
-                <h1>LEB – Änderung melden</h1>
-                <p class="header-subtitle">
-                    Änderungen in LEB meldest du einfach und schnell über das IServ-Störungsmodul.<br>
-                    Wähle die passende Kategorie – der Rest ist vorgefertigt.
-                </p>
-            </div>
+            <h1>LEB – Änderung melden</h1>
+            <p class="header-subtitle">
+                Schnell und einfach über das IServ-Störungsmodul.<br>
+                Wähle die passende Kategorie – alles andere ist vorgefertigt.
+            </p>
         </div>
 
         <div class="content-card">
@@ -99,31 +186,40 @@
             <ol>
                 <li>Klicke auf den großen Button unten.</li>
                 <li>IServ öffnet das Formular „Neue Störungsmeldung“.</li>
-                <li>Wähle im Dropdown „Kategorie“ einen der LEB-Einträge (am schnellsten: „LEB“ eintippen):
-                    <ul>
-                        <li>LEB – Schüler hinzufügen</li>
-                        <li>LEB – Schüler entfernen</li>
-                        <li>LEB – Kurs-/Klassenwechsel</li>
-                        <li>LEB – AG teilgenommen</li>
-                        <li>LEB – AG nicht teilgenommen</li>
-                        <li>LEB – Sonstiges</li>
-                    </ul>
+                <li>Wähle im Dropdown „Kategorie“ die passende LEB-Option<br>
+                    (am schnellsten: „LEB“ eintippen und auswählen):
                 </li>
-                <li>Titel & Beschreibung ergänzen (Formatvorschlag steht meist schon drin)</li>
-                <li>Auf „Absenden“ klicken → landet direkt beim zuständigen Team.</li>
+            </ol>
+
+            <table class="categories-table">
+                <tr>
+                    <td>LEB – Schüler hinzufügen</td>
+                    <td>LEB – Schüler entfernen</td>
+                    <td>LEB – Kurs-/Klassenwechsel</td>
+                </tr>
+                <tr>
+                    <td>LEB – AG teilgenommen</td>
+                    <td>LEB – AG nicht teilgenommen</td>
+                    <td>LEB – Sonstiges</td>
+                </tr>
+            </table>
+
+            <ol start="4">
+                <li>Titel & Beschreibung ergänzen (Vorschlag steht meist schon drin)</li>
+                <li>Auf „Absenden“ klicken → Meldung landet direkt beim Team.</li>
             </ol>
         </div>
 
-        <a href="https://kgsschwarmstedt.de/iserv/report/add/" target="_blank" class="big-action">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            Jetzt Meldung in IServ erstellen
-        </a>
-
         <p class="hint">Bleibt komplett im gewohnten IServ – kein neuer Login nötig.</p>
-
     </div>
+
+    <!-- Fixed Button -->
+    <a href="https://kgsschwarmstedt.de/iserv/report/add/" target="_blank" class="big-action">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        Jetzt LEB-Änderung melden
+    </a>
 
 </body>
 </html>
