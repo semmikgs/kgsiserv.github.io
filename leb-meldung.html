@@ -5,80 +5,172 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LEB – Änderung melden | KGS Digital</title>
     <style>
-        /* Kopiere den gesamten <style>-Block aus deiner kgs-iserv-page.html hierher */
-        /* ... (alles von * { ... } bis zum Ende des @media-Blocks) ... */
-        
-        /* Zusätzliche Anpassungen für diese Seite (optional, aber hübsch) */
-        .intro-box {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            border-left: 5px solid #003F7F;
-            margin: 30px 0;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #003F7F 0%, #005CAD 100%);
+            min-height: 100vh;
+            padding: 32px 16px;
+            color: #1f2937;
+        }
+
+        .container {
+            max-width: 1100px;                  /* etwas schmaler → mehr seitlicher Rand */
+            margin: 0 auto;
+        }
+
+        /* ────────────────────────────────────────────────
+           Header – fast 1:1 Kopie aus index.html
+        ──────────────────────────────────────────────── */
+        .header {
+            background: white;
+            padding: 24px 32px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 40px;
+        }
+
+        .header-top h1 {
+            color: #003F7F;
+            font-size: 28px;
+            margin-bottom: 6px;
+        }
+
+        .header-subtitle {
+            color: #6b7280;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        /* ────────────────────────────────────────────────
+           Content-Bereich – mittig, weiße Karte, wie help-item
+        ──────────────────────────────────────────────── */
+        .content-card {
+            background: white;
+            padding: 32px;
+            border-radius: 12px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+            border-left: 5px solid #003F7F;
+            margin-bottom: 32px;
+        }
+
+        .content-card h2 {
+            color: #003F7F;
+            font-size: 22px;
+            margin-bottom: 20px;
+        }
+
+        .content-card ol {
+            padding-left: 28px;
+            font-size: 15.5px;
+            line-height: 1.75;
+            color: #374151;
+        }
+
+        .content-card li {
+            margin-bottom: 14px;
+        }
+
+        .content-card ul {
+            margin: 12px 0 16px 28px;
+            list-style-type: disc;
+            color: #4b5563;
+        }
+
+        /* Großer Button – Stil wie .external-link aus index */
         .big-action {
-            display: block;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
             width: 100%;
-            max-width: 500px;
-            margin: 40px auto 20px;
-            padding: 18px 30px;
+            max-width: 520px;
+            margin: 48px auto 24px;
+            padding: 16px 36px;
             background: linear-gradient(135deg, #003F7F 0%, #005CAD 100%);
             color: white;
-            font-size: 1.3rem;
+            font-size: 1.15rem;
             font-weight: 600;
-            text-align: center;
             text-decoration: none;
             border-radius: 10px;
-            box-shadow: 0 6px 12px rgba(0,63,127,0.3);
-            transition: all 0.3s ease;
+            box-shadow: 0 6px 16px rgba(0, 63, 127, 0.32);
+            transition: all 0.28s ease;
         }
+
         .big-action:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(0,63,127,0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(0, 63, 127, 0.42);
+        }
+
+        .big-action svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .hint {
+            text-align: center;
+            color: #d1d5db;
+            font-size: 0.94rem;
+            margin-top: 16px;
+        }
+
+        @media (max-width: 768px) {
+            .container { max-width: 100%; padding: 0 12px; }
+            .header { padding: 20px 24px; }
+            .content-card { padding: 24px; }
+            .big-action { font-size: 1.05rem; padding: 14px 28px; }
         }
     </style>
 </head>
 <body>
+
     <div class="container">
-        <!-- Header – identisch mit Hauptseite -->
+
         <div class="header">
             <div class="header-top">
-                <div>
-                    <h1>LEB – Änderung melden</h1>
-                    <p class="header-subtitle">Um Änderungen in LEB zu melden, wird das IServ-Störungsmodul genutzt. 
-                    Dort gibt es verschiedene Kategorien für LEB, welche jeweils eine vorgefertige Meldung zum Ergänzen öffnen.</p>
-                </div>
+                <h1>LEB – Änderung melden</h1>
+                <p class="header-subtitle">
+                    Änderungen in LEB meldest du einfach und schnell über das IServ-Störungsmodul.<br>
+                    Wähle die passende Kategorie – der Rest ist vorgefertigt.
+                </p>
             </div>
         </div>
 
-        <!-- Infobereich -->
-        <div class="intro-box">
-            <h3>So funktioniert's (in 20–30 Sekunden)</h3>
-            <ol style="margin: 15px 0 0 20px; line-height: 1.6;">
+        <div class="content-card">
+            <h2>So funktioniert’s (ca. 25 Sekunden)</h2>
+            <ol>
                 <li>Klicke auf den großen Button unten.</li>
-                <li>IServ öffnet das bekannte Formular für neue Störungsmeldungen.</li>
-                <li>Wähle im Dropdown „Kategorie“ den passenden Eintrag aus (oder tippe LEB für schnelles Filtern):<br>
-                      • LEB – Schüler hinzufügen<br>
-                      • LEB – Schüler entfernen<br>
-                      • LEB – Kurs-/Klassenwechsel<br>
-                      • LEB – AG teilgenommen<br>
-                      • LEB – AG nicht teilgenommen<br>
-                      • LEB – Sonstiges
+                <li>IServ öffnet das Formular „Neue Störungsmeldung“.</li>
+                <li>Wähle im Dropdown „Kategorie“ einen der LEB-Einträge (am schnellsten: „LEB“ eintippen):
+                    <ul>
+                        <li>LEB – Schüler hinzufügen</li>
+                        <li>LEB – Schüler entfernen</li>
+                        <li>LEB – Kurs-/Klassenwechsel</li>
+                        <li>LEB – AG teilgenommen</li>
+                        <li>LEB – AG nicht teilgenommen</li>
+                        <li>LEB – Sonstiges</li>
+                    </ul>
                 </li>
-                <li>Trage Titel und Beschreibung ein (Formatvorschlag steht schon drin: Jahrgang, Zweig, Fach/Kurs, Schülername).</li>
-                <li>Auf „Absenden“ klicken – die Meldung landet direkt bei dir.</li>
+                <li>Titel & Beschreibung ergänzen (Formatvorschlag steht meist schon drin)</li>
+                <li>Auf „Absenden“ klicken → landet direkt beim zuständigen Team.</li>
             </ol>
         </div>
 
-        <!-- Großer Call-to-Action-Button -->
         <a href="https://kgsschwarmstedt.de/iserv/report/add/" target="_blank" class="big-action">
-            Jetzt LEB Änderungsmeldung in IServ erstellen →
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Jetzt Meldung in IServ erstellen
         </a>
 
-        <p style="text-align: center; color: #6b7280; font-size: 0.95rem;">
-            Du bleibst im gewohnten IServ-System – keine neuen Logins oder Apps nötig.
-        </p>
+        <p class="hint">Bleibt komplett im gewohnten IServ – kein neuer Login nötig.</p>
+
     </div>
+
 </body>
 </html>
