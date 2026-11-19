@@ -249,6 +249,37 @@
                 justify-content: center;
             }
         }
+        /* Aktuelles */
+        .news {
+            margin: -5px 0 22px;
+            padding: 12px 16px;
+            background: #f0f6fd;
+            border-left: 4px solid #003F7F;
+            border-radius: 10px;
+        }
+        .news-kopf { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 4px; }
+        .news-titel { font-weight: 700; color: #003F7F; font-size: 15px; }
+        .news-mehr {
+            background: none; border: 0; padding: 0; cursor: pointer;
+            color: #003F7F; font-size: 13px; text-decoration: underline; font-family: inherit;
+        }
+        .news-liste { list-style: none; margin: 0; padding: 0; }
+        .news-liste li {
+            display: flex; gap: 10px; align-items: baseline;
+            padding: 6px 0; border-top: 1px solid #dbe6f3; font-size: 14px; line-height: 1.45; color: #374151;
+        }
+        .news-liste li:first-child { border-top: 0; }
+        .news-datum { flex: none; min-width: 52px; color: #6b7280; font-size: 13px; font-variant-numeric: tabular-nums; }
+        .news-liste b { color: #1f2937; }
+        .news-neu {
+            display: inline-block; margin-right: 6px; padding: 1px 7px; border-radius: 999px;
+            background: #16a34a; color: #fff; font-size: 11px; font-weight: 700; vertical-align: 1px;
+        }
+        .news-liste a { color: #003F7F; font-weight: 600; white-space: nowrap; text-decoration: none; }
+        .news-liste a:hover { text-decoration: underline; }
+        @media (max-width: 640px) {
+            .news-liste li { flex-direction: column; gap: 0; }
+        }
     </style>
 </head>
 <body>
@@ -314,6 +345,15 @@
                     <!--- Linktext --->
                 </a> 
                 
+            </div>
+
+            <!-- Aktuelles (Inhalte unten im Skript bei NEWS pflegen) -->
+            <div class="news" id="news" hidden>
+                <div class="news-kopf">
+                    <span class="news-titel">📰 Aktuelles</span>
+                    <button type="button" class="news-mehr" id="newsMehr" hidden>Ältere anzeigen</button>
+                </div>
+                <ul class="news-liste" id="newsListe"></ul>
             </div>
 
             <!-- Suchfeld -->
@@ -835,6 +875,46 @@
     </div>
 
     <script>
+        /* =====================================================
+           AKTUELLES – neue Meldung einfach oben einfügen.
+           datum: JJJJ-MM-TT · titel: kurz · text: 1–2 Sätze · link: optional
+           Angezeigt werden die 3 neuesten, ältere zum Aufklappen.
+           ===================================================== */
+        const NEWS = [
+            { datum: "2026-11-19", titel: "Projektwoche",
+              text: "Projekte für die Projektwoche werden jetzt digital geplant – mit Raumbuchung und Belegungsmeldung.",
+              link: "projektwoche/index.html", linktext: "zur Projektplanung" },
+        ];
+
+        (function aktuelles() {
+            const box = document.getElementById("news");
+            const liste = document.getElementById("newsListe");
+            const mehr = document.getElementById("newsMehr");
+            const eintraege = NEWS.filter((n) => n && n.titel).sort((a, b) => String(b.datum).localeCompare(String(a.datum)));
+            if (!eintraege.length) return;
+            const esc = (t) => String(t || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+            const heute = new Date();
+            let alle = false;
+            function zeichne() {
+                liste.innerHTML = "";
+                (alle ? eintraege : eintraege.slice(0, 3)).forEach((n) => {
+                    const d = new Date(n.datum + "T12:00:00");
+                    const neu = (heute - d) / 86400000 < 7;
+                    const li = document.createElement("li");
+                    li.innerHTML = '<span class="news-datum">' + (isNaN(d) ? "" : d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })) + "</span>" +
+                        "<span>" + (neu ? '<span class="news-neu">neu</span>' : "") + "<b>" + esc(n.titel) + "</b>" +
+                        (n.text ? " – " + esc(n.text) : "") +
+                        (n.link ? ' <a href="' + esc(n.link) + '"' + (/^https?:/.test(n.link) ? ' target="_blank"' : "") + ">" + esc(n.linktext || "mehr") + " →</a>" : "") +
+                        "</span>";
+                    liste.appendChild(li);
+                });
+                mehr.hidden = eintraege.length <= 3;
+                mehr.textContent = alle ? "Weniger anzeigen" : "Ältere anzeigen (" + (eintraege.length - 3) + ")";
+            }
+            mehr.addEventListener("click", () => { alle = !alle; zeichne(); });
+            zeichne();
+            box.hidden = false;
+        })();
         // ====================================
         // LIVE-SUCHFILTER & KATEGORIE-FILTER
         // ====================================
