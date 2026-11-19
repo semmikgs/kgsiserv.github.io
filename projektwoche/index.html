@@ -1,0 +1,1739 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Projektwoche · Projektplanung</title>
+<meta name="description" content="Projekt für die Projektwoche anlegen, Tage wählen und Räume buchen.">
+
+<!-- =========================================================
+     PROJEKTWOCHE · RAUMBUCHUNG · KGS - Digital
+     Eigenständige Datei, kein CDN, kein Framework.
+     Daten liegen in Supabase (Tabellen pw_*).
+
+     EINRICHTEN: unten bei SUPABASE_KEY den "anon public"-Schlüssel
+     eintragen (Supabase → Project Settings → API Keys).
+     Der Schlüssel ist öffentlich gedacht; geschützt wird über die
+     Datenbankregeln aus Schritt 1–3.
+     ========================================================= -->
+
+<style>
+/* ---------- KGS-Basis ---------- */
+:root {
+  --bg:            #2a2c8e;
+  --karte:         #ffffff;
+  --tinte:         #1f2430;
+  --tinte-leise:   #6b7280;
+  --indigo:        #312e91;
+  --navy:          #1e2a78;
+  --navy-hover:    #16205c;
+  --linie:         #e3e6ee;
+  --chip:          #eef0f5;
+  --badge-bg:      #e6e8fb;
+  --radius-karte:  16px;
+  --radius-klein:  8px;
+  --schatten:      0 1px 3px rgba(15, 20, 60, .12);
+  --gruen:         #1b7a4b;
+  --orange:        #c2670c;
+  --rot:           #b3261e;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  padding: 20px 16px 56px;
+  background: var(--bg);
+  color: var(--tinte);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.huelle { max-width: 1180px; margin: 0 auto; }
+
+.karte {
+  background: var(--karte);
+  border-radius: var(--radius-karte);
+  padding: 26px 28px;
+  margin-bottom: 22px;
+  box-shadow: var(--schatten);
+}
+
+.kopf-titel {
+  display: flex; align-items: center; gap: 12px;
+  margin: 0; font-size: 30px; font-weight: 700;
+  color: var(--indigo); letter-spacing: -.01em;
+}
+.kopf-titel .symbol { font-size: 28px; line-height: 1; }
+.kopf-untertitel { margin: 6px 0 0; color: var(--tinte-leise); font-size: 15px; }
+
+.buttonreihe { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+
+.knopf {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 18px;
+  background: var(--navy); color: #fff;
+  border: 0; border-radius: var(--radius-klein);
+  font-family: inherit; font-size: 14.5px; font-weight: 600;
+  text-decoration: none; cursor: pointer;
+  transition: background .15s ease;
+}
+.knopf:hover { background: var(--navy-hover); }
+.knopf:focus-visible { outline: 2px solid var(--indigo); outline-offset: 2px; }
+.knopf:disabled { opacity: .6; cursor: wait; }
+.knopf.zurueck { background: transparent; color: var(--navy); border: 1.5px solid var(--linie); }
+.knopf.zurueck:hover { background: var(--chip); }
+.knopf.gefahr { background: transparent; color: var(--rot); border: 1.5px solid #f1c9c6; }
+.knopf.gefahr:hover { background: #fdf0ef; }
+.knopf.gross { padding: 14px 22px; font-size: 16px; width: 100%; justify-content: center; }
+
+.trenner { height: 1px; background: var(--linie); border: 0; margin: 24px 0; }
+
+.filterreihe { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 12px; }
+.filter {
+  padding: 8px 16px;
+  background: var(--chip); color: #4b5563;
+  border: 1.5px solid transparent; border-radius: 999px;
+  font-family: inherit; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: background .15s ease;
+}
+.filter:hover { background: #e2e6ee; }
+.filter[aria-pressed="true"] { background: #fff; color: var(--indigo); border-color: var(--indigo); }
+.filter:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+
+.fusszeile { margin-top: 10px; color: #b9bce0; font-size: 13.5px; text-align: center; }
+
+/* ---------- Formular ---------- */
+.abschnitt { margin: 0 0 4px; font-size: 19px; font-weight: 700; color: var(--indigo); }
+.abschnitt .nr {
+  display: inline-grid; place-items: center;
+  width: 26px; height: 26px; margin-right: 8px;
+  background: var(--badge-bg); color: var(--indigo);
+  border-radius: 999px; font-size: 14px;
+}
+.abschnitt-hinweis { margin: 0 0 16px; font-size: 14px; color: var(--tinte-leise); }
+
+.feld {
+  width: 100%;
+  padding: 10px 12px;
+  font-family: inherit; font-size: 15px; color: var(--tinte);
+  background: #fff;
+  border: 1.5px solid var(--linie); border-radius: var(--radius-klein);
+}
+.feld:focus { outline: none; border-color: var(--navy); box-shadow: 0 0 0 3px rgba(30, 42, 120, .12); }
+select.feld { padding-right: 8px; }
+
+.feldgruppe { margin-top: 16px; }
+.feldgruppe:first-of-type { margin-top: 0; }
+.feldgruppe > label, .label {
+  display: block; margin-bottom: 6px;
+  font-size: 13px; font-weight: 700; color: var(--tinte-leise);
+}
+.pflicht { color: var(--rot); }
+.nebeneinander { display: flex; gap: 10px; }
+.nebeneinander > div { flex: 1; min-width: 0; }
+.nebeneinander > .schmal { flex: 0 0 110px; }
+
+.schalter { display: flex; align-items: flex-start; gap: 10px; font-size: 15px; cursor: pointer; }
+.schalter input { width: 20px; height: 20px; accent-color: var(--navy); margin: 2px 0 0; flex: none; }
+.schalter small { display: block; color: var(--tinte-leise); font-size: 13.5px; }
+
+/* ---------- Schrittanzeige ---------- */
+.schrittreihe { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 16px; font-size: 14px; color: var(--tinte-leise); }
+.schrittreihe b {
+  display: inline-grid; place-items: center; width: 22px; height: 22px; margin-right: 6px;
+  background: var(--badge-bg); color: var(--indigo); border-radius: 999px; font-size: 12.5px;
+}
+
+
+/* ---------- Zähler ---------- */
+.zaehler { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-top: 18px; }
+.zkachel { background: var(--chip); border-radius: 12px; padding: 10px 14px; }
+.zkachel .k { font-size: 12.5px; font-weight: 700; color: var(--tinte-leise); }
+.zkachel .w { font-size: 22px; font-weight: 700; color: var(--indigo); line-height: 1.25; }
+.zkachel .w small { font-size: 14px; color: var(--tinte-leise); font-weight: 600; }
+.zkachel .balken { height: 6px; background: #dfe2ec; border-radius: 99px; margin: 6px 0 4px; overflow: hidden; }
+.zkachel .balken i { display: block; height: 100%; background: var(--orange); border-radius: 99px; }
+.zkachel.erreicht .balken i { background: var(--gruen); }
+.zkachel .r { font-size: 12.5px; color: var(--tinte-leise); }
+.zkachel.erreicht .r { color: var(--gruen); font-weight: 700; }
+
+/* ---------- Projektplan (Lese-Ansicht) ---------- */
+.plan-steuer { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-top: 16px; }
+.plan-steuer > div { flex: 1 1 160px; min-width: 0; }
+.plan-steuer > .breit { flex: 2 1 260px; }
+.ptab-huelle { overflow-x: auto; border: 1.5px solid var(--linie); border-radius: 12px; margin-top: 18px; }
+.ptab { width: 100%; border-collapse: collapse; font-size: 15px; }
+.ptab th {
+  position: sticky; top: 0; background: #f6f7fb; text-align: left; padding: 10px 12px;
+  font-size: 13px; font-weight: 700; color: var(--tinte-leise); border-bottom: 1.5px solid var(--linie); white-space: nowrap;
+}
+.ptab th.heute { color: var(--indigo); background: var(--badge-bg); }
+.ptab td { padding: 10px 12px; border-bottom: 1px solid var(--linie); vertical-align: top; }
+.ptab tr:last-child td { border-bottom: 0; }
+.ptab td.heute { background: #f7f8ff; }
+.ptab .raumnr { font-weight: 700; color: var(--indigo); white-space: nowrap; }
+.ptab .thema { font-weight: 700; }
+.ptab small { display: block; color: var(--tinte-leise); font-size: 13px; }
+.ptab .vertretung { color: var(--orange); font-weight: 700; }
+.belegung { padding: 6px 9px; margin-bottom: 6px; background: var(--badge-bg); border-radius: 8px; font-size: 13.5px; line-height: 1.35; }
+.belegung:last-child { margin-bottom: 0; }
+.belegung b { color: var(--indigo); }
+.plan-leer { color: var(--tinte-leise); text-align: center; padding: 30px 0; }
+.plan-stand { margin: 10px 0 0; font-size: 13px; color: var(--tinte-leise); }
+
+/* ---------- Belegungsmeldung ---------- */
+.hzeile {
+  display: grid; grid-template-columns: 110px 1fr auto; gap: 14px; align-items: center;
+  padding: 12px 14px; margin-bottom: 8px;
+  border: 1.5px solid var(--linie); border-radius: 12px;
+}
+.hzeile.voll { background: #fdf3f2; border-color: #f1c9c6; }
+.hzeile.frei { background: #f1faf4; border-color: #cfe9d9; }
+.hzeile .frei-text { color: var(--gruen); font-weight: 700; font-size: 14px; white-space: nowrap; }
+.hzeile .hraum { font-size: 20px; font-weight: 700; color: var(--indigo); line-height: 1.2; }
+.hzeile .hraum small { display: block; font-size: 12.5px; font-weight: 500; color: var(--tinte-leise); }
+.hzeile .hthema { font-weight: 700; }
+.hzeile .hwer { font-size: 13.5px; color: var(--tinte-leise); }
+.hzeile .hknopf { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.hzeile .voll-text { color: var(--rot); font-weight: 700; font-size: 14px; white-space: nowrap; }
+.knopf.voll-melden { background: #fff; color: var(--rot); border: 1.5px solid #e8a9a3; padding: 8px 14px; font-size: 14px; }
+.knopf.voll-melden:hover { background: #fdf0ef; }
+.linkknopf { background: none; border: 0; padding: 0; color: var(--navy); text-decoration: underline; cursor: pointer; font-family: inherit; font-size: 13px; }
+@media (max-width: 640px) {
+  .hzeile { grid-template-columns: 1fr; }
+  .hzeile .hknopf { align-items: stretch; }
+}
+
+/* ---------- Infoseite ---------- */
+.info { border-top: 6px solid var(--indigo); }
+.info-kopf { display: flex; gap: 16px; align-items: center; }
+.info-symbol {
+  display: grid; place-items: center; flex: none;
+  width: 56px; height: 56px; border-radius: 999px; background: var(--badge-bg); font-size: 28px;
+}
+.info h2 { margin: 0; font-size: 24px; color: var(--indigo); }
+.info-kopf p { margin: 4px 0 0; color: var(--tinte-leise); font-size: 15.5px; }
+.info-schritte { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 22px; }
+.info-schritte > div { display: flex; gap: 12px; padding: 14px; background: var(--chip); border-radius: 12px; font-size: 14px; color: var(--tinte-leise); }
+.info-schritte b {
+  display: grid; place-items: center; flex: none; width: 28px; height: 28px;
+  background: var(--badge-bg); color: var(--indigo); border-radius: 999px; font-size: 14px;
+}
+.info-schritte strong { display: block; color: var(--tinte); font-size: 15px; margin-bottom: 2px; }
+.info-fuss { margin: 18px 0 0; font-size: 14px; color: var(--tinte-leise); }
+@media (max-width: 640px) {
+  #titelDatum { display: block; font-size: 19px; }
+  .info-kopf { align-items: flex-start; }
+  .info-symbol { width: 44px; height: 44px; font-size: 22px; }
+  .info h2 { font-size: 21px; }
+}
+
+/* ---------- Bestätigung ---------- */
+.erfolg { border-top: 6px solid var(--gruen); }
+.erfolg-kopf { display: flex; gap: 16px; align-items: center; margin-bottom: 18px; }
+.erfolg-haken {
+  display: grid; place-items: center; flex: none;
+  width: 56px; height: 56px; border-radius: 999px;
+  background: #e3f3ea; color: var(--gruen); font-size: 30px; font-weight: 700;
+}
+.erfolg h2 { margin: 0; font-size: 24px; color: var(--gruen); }
+.erfolg-kopf p { margin: 2px 0 0; color: var(--tinte-leise); }
+.erfolg-hinweis { margin: 18px 0 0; padding: 12px 14px; background: var(--chip); border-radius: var(--radius-klein); font-size: 15px; }
+
+/* ---------- Werkbank ---------- */
+.werkbank {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-areas: "projekt" "tage" "abschluss";
+  gap: 22px;
+}
+.werkbank > .karte { margin: 0; }
+.b-projekt   { grid-area: projekt; }
+.b-tage      { grid-area: tage; }
+.b-abschluss { grid-area: abschluss; }
+
+/* ---------- Tageszeilen ---------- */
+.tag {
+  display: grid;
+  grid-template-columns: 150px 1fr auto;
+  gap: 14px; align-items: start;
+  padding: 14px; margin-bottom: 10px;
+  border: 1.5px solid var(--linie); border-radius: 12px;
+  transition: background .15s ease;
+}
+.tag.aus { background: #f8f9fc; }
+.tagknopf {
+  display: flex; align-items: center; gap: 10px;
+  padding: 0; background: none; border: 0; cursor: pointer;
+  font-family: inherit; text-align: left; color: var(--tinte);
+}
+.tagknopf .haken {
+  display: grid; place-items: center; flex: none;
+  width: 24px; height: 24px; border-radius: 6px;
+  border: 2px solid var(--navy); color: #fff; font-size: 14px; font-weight: 700;
+}
+.tagknopf[aria-pressed="true"] .haken { background: var(--navy); }
+.tagknopf b { display: block; font-size: 15.5px; }
+.tagknopf small { display: block; color: var(--tinte-leise); font-size: 13px; }
+.tagknopf:focus-visible { outline: 2px solid var(--navy); outline-offset: 4px; border-radius: 6px; }
+.tag.aus .tagknopf b { color: var(--tinte-leise); }
+.tag-aus-text { grid-column: 2 / -1; color: var(--tinte-leise); font-size: 14px; padding-top: 2px; }
+
+.tag-mitte { display: grid; gap: 8px; min-width: 0; }
+.raumwahl {
+  width: 100%; padding: 10px 14px;
+  background: var(--badge-bg); color: var(--indigo);
+  border: 1.5px solid transparent; border-radius: var(--radius-klein);
+  font-family: inherit; font-size: 15px; text-align: left; cursor: pointer;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.raumwahl:hover { border-color: var(--indigo); }
+.raumwahl.leer { background: #fff; color: var(--navy); border: 1.5px dashed #b7bdd6; font-weight: 600; }
+.raumwahl:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+
+.stunden { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+.stunden .filterreihe { margin: 0; flex-wrap: nowrap; }
+.stunden-auswahl { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--tinte-leise); }
+.stunden-auswahl select { width: auto; padding: 6px 8px; }
+
+.warnung { font-size: 13.5px; color: var(--rot); background: #fdf0ef; padding: 8px 10px; border-radius: var(--radius-klein); }
+.mini { font-size: 13.5px; padding: 8px 14px; margin-top: 0; }
+
+/* ---------- Zusammenfassung ---------- */
+.zusammenfassung { list-style: none; margin: 0 0 18px; padding: 0; }
+.zusammenfassung li {
+  display: flex; gap: 10px; padding: 7px 0;
+  border-bottom: 1px solid var(--linie); font-size: 14.5px;
+}
+.zusammenfassung li:last-child { border-bottom: 0; }
+.zusammenfassung .t { width: 28px; font-weight: 700; color: var(--indigo); flex: none; }
+.zusammenfassung .leise { color: var(--tinte-leise); }
+.fehlerliste {
+  margin: 14px 0 0; padding: 10px 14px 10px 30px;
+  background: #fdf0ef; color: var(--rot); border-radius: var(--radius-klein); font-size: 14px;
+}
+
+/* ---------- Bearbeitungsleiste / Hinweise ---------- */
+.leiste {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
+  border-left: 5px solid var(--orange);
+}
+.leiste p { margin: 0; flex: 1 1 260px; }
+.leiste .buttonreihe { margin: 0; }
+
+/* ---------- Dialoge ---------- */
+dialog {
+  border: 0; padding: 0;
+  border-radius: var(--radius-karte);
+  box-shadow: 0 20px 60px rgba(15, 20, 60, .35);
+  color: var(--tinte);
+  width: min(560px, calc(100vw - 24px));
+}
+dialog::backdrop { background: rgba(15, 20, 60, .55); }
+dialog.breit { width: min(1000px, calc(100vw - 24px)); height: min(820px, calc(100vh - 24px)); }
+dialog.breit[open] { display: flex; flex-direction: column; }
+.fenster-kopf { padding: 22px 24px 16px; border-bottom: 1px solid var(--linie); }
+.fenster-kopf h2 { margin: 0; font-size: 21px; color: var(--indigo); display: flex; justify-content: space-between; gap: 12px; }
+.fenster-inhalt { padding: 20px 24px; overflow: auto; flex: 1; }
+.fenster-fuss { padding: 14px 24px 20px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
+.schliessen {
+  width: 36px; height: 36px; flex: none;
+  background: var(--chip); border: 0; border-radius: 999px;
+  font-size: 20px; line-height: 1; cursor: pointer; color: #4b5563;
+}
+.schliessen:hover { background: #e2e6ee; }
+
+.suchzeile { display: flex; gap: 12px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+.suchzeile .feld { flex: 1 1 240px; }
+
+.raumabschnitt { margin: 0 0 22px; }
+.raumabschnitt h3 { margin: 0 0 10px; font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: var(--tinte-leise); }
+.raumgitter { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.raum {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 12px 14px; min-height: 92px;
+  background: #fff; border: 1.5px solid var(--linie); border-radius: 12px;
+  font-family: inherit; text-align: left; cursor: pointer; color: var(--tinte);
+  transition: border-color .15s ease, transform .15s ease;
+}
+.raum:hover:not(:disabled) { border-color: var(--indigo); transform: translateY(-1px); }
+.raum:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+.raum.gewaehlt { border-color: var(--indigo); background: var(--badge-bg); }
+.raum:disabled { background: #f3f4f7; cursor: not-allowed; color: var(--tinte-leise); }
+.raum .nr { font-size: 19px; font-weight: 700; color: var(--indigo); }
+.raum:disabled .nr { color: #9aa1ae; }
+.raum .bes { font-size: 13px; color: var(--tinte-leise); min-height: 19px; }
+.raum .zust { margin-top: auto; font-size: 12.5px; font-weight: 600; display: flex; gap: 6px; align-items: baseline; }
+.raum .zust::before { content: ""; width: 8px; height: 8px; border-radius: 999px; flex: none; transform: translateY(-1px); }
+.zust.frei   { color: var(--gruen); }  .zust.frei::before   { background: var(--gruen); }
+.zust.teil   { color: var(--orange); } .zust.teil::before   { background: var(--orange); }
+.zust.belegt { color: #8a909c; }       .zust.belegt::before { background: #b3b8c2; }
+.leer-hinweis { color: var(--tinte-leise); text-align: center; padding: 40px 0; }
+
+.codeanzeige {
+  margin: 16px 0; padding: 18px;
+  background: var(--badge-bg); color: var(--indigo); border-radius: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 40px; font-weight: 700; letter-spacing: .25em; text-align: center;
+}
+.codefeld { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 22px; letter-spacing: .2em; text-transform: uppercase; text-align: center; }
+
+/* ---------- Meldung ---------- */
+.meldung {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+  max-width: calc(100vw - 32px);
+  padding: 12px 20px; border-radius: 12px;
+  background: var(--tinte); color: #fff; font-size: 15px; font-weight: 600;
+  box-shadow: 0 10px 30px rgba(15, 20, 60, .35);
+  z-index: 50;
+}
+.meldung.fehler { background: var(--rot); }
+
+/* ---------- Mobil ---------- */
+@media (max-width: 640px) {
+  body { padding: 14px 12px 40px; }
+  .karte { padding: 20px 18px; }
+  .kopf-titel { font-size: 23px; }
+  .tag { grid-template-columns: 1fr; }
+  .tag-aus-text { grid-column: auto; }
+  .stunden { align-items: flex-start; }
+  .nebeneinander { flex-wrap: wrap; }
+  .nebeneinander > .schmal { flex: 1 1 100px; }
+  .codeanzeige { font-size: 30px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+
+<body>
+<div class="huelle">
+
+  <div class="karte">
+    <h1 class="kopf-titel"><span class="symbol">🗓️</span> <span>Projektwoche<span id="titelDatum" style="white-space:nowrap"></span> · Projektplanung</span></h1>
+    <p class="kopf-untertitel" id="untertitel">Projekt anlegen, Tage wählen, Raum buchen.</p>
+    <div class="schrittreihe" id="schrittreihe">
+      <span><b>1</b>Projekt beschreiben</span>
+      <span><b>2</b>Tage und Räume wählen</span>
+      <span><b>3</b>Verbindlich buchen</span>
+    </div>
+    <div class="zaehler" id="zaehler"></div>
+    <div class="buttonreihe">
+      <a class="knopf zurueck" href="../index.html">Zurück zu KGS-Digital</a>
+      <a class="knopf zurueck" href="admin.html" title="Für die Projektwochen-Leitung">🔐 Admin</a>
+      <button class="knopf zurueck" id="btnCode" type="button" hidden>Mit Änderungscode bearbeiten</button>
+    </div>
+  </div>
+
+  <div class="karte leiste" id="leiste" hidden>
+    <p>Du bearbeitest das Projekt <b id="leisteThema"></b>.</p>
+    <div class="buttonreihe">
+      <button class="knopf gefahr" id="btnLoeschen" type="button">Projekt löschen</button>
+      <button class="knopf zurueck" id="btnAbbrechen" type="button">Bearbeitung abbrechen</button>
+    </div>
+  </div>
+
+  <div class="karte" id="startfehler" hidden></div>
+
+  <!-- Projektplan (nach der Buchungsphase) -->
+  <!-- Belegungsmeldung während der Projektwoche -->
+  <section class="karte" id="heute" hidden>
+    <h2 class="abschnitt" id="heuteTitel">Projekte heute</h2>
+    <p class="abschnitt-hinweis">Ist dein Projekt voll? Dann melde es hier – die Projektwochen-Leitung sieht es sofort.
+      Eine Meldung lässt sich jederzeit zurücknehmen.</p>
+    <div id="heuteTest"></div>
+    <input class="feld" id="heuteSuche" type="search" placeholder="Dein Kürzel, Thema oder Raum suchen …" style="margin:6px 0 14px">
+    <div id="heuteListe"></div>
+    <p class="plan-stand" id="heuteStand"></p>
+  </section>
+
+  <section class="karte" id="plan" hidden>
+    <h2 class="abschnitt">Projektplan</h2>
+    <div class="filterreihe" id="planReiter" style="margin-top:8px"></div>
+    <div class="plan-steuer" id="planSteuer"></div>
+    <div id="planInhalt"></div>
+    <p class="plan-stand" id="planStand"></p>
+  </section>
+
+  <!-- Bestätigung nach dem Speichern -->
+  <section class="karte erfolg" id="erfolg" hidden aria-live="polite">
+    <div class="erfolg-kopf">
+      <span class="erfolg-haken" aria-hidden="true">✓</span>
+      <div>
+        <h2 id="erfolgTitel">Eingaben gespeichert</h2>
+        <p id="erfolgUnter">Dein Projekt ist verbindlich eingetragen.</p>
+      </div>
+    </div>
+    <div id="erfolgInhalt"></div>
+    <p class="erfolg-hinweis">Du kannst dieses Fenster jetzt schließen – oder ein weiteres Projekt eintragen.</p>
+    <div class="buttonreihe">
+      <button class="knopf" id="btnFertig" type="button">＋ Weiteres Projekt eintragen</button>
+    </div>
+  </section>
+
+  <!-- Infoseite: weder Buchung noch Belegung noch Projektplan freigeschaltet -->
+  <section class="karte info" id="geschlossen" hidden>
+    <div class="info-kopf">
+      <span class="info-symbol" aria-hidden="true">⏳</span>
+      <div>
+        <h2>Die Projektplanung startet bald</h2>
+        <p>Sobald die Projektwochen-Leitung die Planung freischaltet, könnt ihr hier eure Projekte eintragen und Räume buchen.</p>
+      </div>
+    </div>
+    <div class="info-schritte">
+      <div><b>1</b><span><strong>Projekt beschreiben</strong>Thema, Kurzbeschreibung, Kürzel, weitere Lehrkräfte und ggf. Kosten (max. 5 €).</span></div>
+      <div><b>2</b><span><strong>Tage und Räume wählen</strong>Einzelne Tage oder die ganze Woche, jeweils 2. bis 6. Stunde – pro Tag ist ein anderer Raum möglich.</span></div>
+      <div><b>3</b><span><strong>Verbindlich buchen</strong>Auf Wunsch gibt es einen Änderungscode, mit dem ihr euer Projekt während der Planungsphase noch anpassen könnt.</span></div>
+    </div>
+    <p class="info-fuss">Bei Fragen wendet euch an die Projektwochen-Leitung. Diese Seite einfach später noch einmal aufrufen.</p>
+  </section>
+
+  <div class="werkbank" id="werkbank" hidden>
+
+    <!-- 1 · Projekt -->
+    <section class="karte b-projekt">
+      <h2 class="abschnitt"><span class="nr">1</span>Projekt</h2>
+      <p class="abschnitt-hinweis">Pflichtfelder sind mit <span class="pflicht">*</span> markiert.</p>
+
+      <div class="feldgruppe">
+        <label for="fThema">Thema des Projekts <span class="pflicht">*</span></label>
+        <input class="feld" id="fThema" type="text" maxlength="120" placeholder="z. B. Wir bauen ein Insektenhotel">
+      </div>
+
+      <div class="feldgruppe">
+        <label for="fBeschr">Kurzbeschreibung <span style="font-weight:400">(für den Aushang, max. 300 Zeichen ≈ 3 Sätze)</span></label>
+        <textarea class="feld" id="fBeschr" maxlength="300" rows="3" style="resize:vertical;font-family:inherit"
+          placeholder="Worum geht es? Was machen die Schüler? Was sollen sie mitbringen?"></textarea>
+        <div id="beschrZaehler" style="text-align:right;font-size:12.5px;color:var(--tinte-leise);margin-top:4px">0 / 300</div>
+      </div>
+
+      <div class="feldgruppe nebeneinander">
+        <div class="schmal">
+          <label class="label" for="fKuerzel">Kürzel <span class="pflicht">*</span></label>
+          <input class="feld" id="fKuerzel" type="text" minlength="2" maxlength="5" autocapitalize="off" autocomplete="off" placeholder="z. B. Mu">
+        </div>
+        <div>
+          <label class="label" for="fName">Name <span class="pflicht">*</span></label>
+          <input class="feld" id="fName" type="text" maxlength="80" placeholder="z. B. Max Mustermann">
+        </div>
+      </div>
+
+      <div class="feldgruppe">
+        <label for="fMit">Weitere Lehrkräfte im Projekt</label>
+        <input class="feld" id="fMit" type="text" maxlength="120" placeholder="Kürzel, z. B. KRA, MÜL">
+      </div>
+
+      <div class="feldgruppe nebeneinander">
+        <div class="schmal" style="flex-basis:200px">
+          <label class="label" for="fKosten">Kosten pro Schüler (max. 5 €)</label>
+          <div style="position:relative">
+            <input class="feld" id="fKosten" type="text" inputmode="decimal" maxlength="4" placeholder="0" style="padding-right:30px">
+            <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--tinte-leise)">€</span>
+          </div>
+        </div>
+        <div>
+          <label class="label" for="fKostenInfo">wofür? (optional)</label>
+          <input class="feld" id="fKostenInfo" type="text" maxlength="80" placeholder="z. B. Material, Eintritt, Busfahrt">
+        </div>
+      </div>
+
+      <!-- Klassenstufen: auf der Buchungsseite ausgeblendet (Standard 5–12), im Admin weiter änderbar -->
+      <div class="feldgruppe" hidden>
+        <span class="label">Klassenstufen <span class="pflicht">*</span></span>
+        <div class="filterreihe" id="klassenChips" style="margin-top:0"></div>
+        <div class="nebeneinander" style="margin-top:12px">
+          <div>
+            <label class="label" for="fVon">von Klasse</label>
+            <select class="feld" id="fVon"></select>
+          </div>
+          <div>
+            <label class="label" for="fBis">bis Klasse</label>
+            <select class="feld" id="fBis"></select>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2 · Tage und Räume -->
+    <section class="karte b-tage">
+      <h2 class="abschnitt"><span class="nr">2</span>Tage und Räume</h2>
+      <p class="abschnitt-hinweis">Standard sind alle fünf Tage, jeweils 2. bis 6. Stunde.
+        Tage ohne dein Projekt einfach abwählen. Pro Tag ist ein anderer Raum möglich.</p>
+      <div class="buttonreihe" style="margin:0 0 14px">
+        <button class="knopf zurueck mini" id="btnAlle" type="button">Raum vom ersten Tag für alle Tage übernehmen</button>
+      </div>
+      <div id="tage"></div>
+    </section>
+
+    <!-- 3 · Abschluss -->
+    <section class="karte b-abschluss">
+      <h2 class="abschnitt"><span class="nr">3</span>Buchen</h2>
+      <p class="abschnitt-hinweis">Deine Auswahl im Überblick.</p>
+      <ul class="zusammenfassung" id="zusammenfassung"></ul>
+
+      <label class="schalter" id="codeZeile" style="margin-bottom:18px">
+        <input type="checkbox" id="cbCode">
+        <span>Ich möchte einen Änderungscode
+          <small>Damit kannst du dein Projekt in der Planungsphase noch ändern. Ohne Code ist die Buchung fest,
+          Änderungen dann nur über die Projektwochen-Leitung.</small></span>
+      </label>
+
+      <button class="knopf gross" id="btnBuchen" type="button">Verbindlich buchen</button>
+      <ul class="fehlerliste" id="fehlerliste" hidden></ul>
+    </section>
+
+  </div>
+
+  <p class="fusszeile">KGS Schwarmstedt · Projektwoche</p>
+</div>
+
+<!-- Raumauswahl -->
+<dialog class="breit" id="picker" aria-labelledby="pickerTitel">
+  <div class="fenster-kopf">
+    <h2><span id="pickerTitel">Raum wählen</span>
+      <button class="schliessen" type="button" data-schliessen aria-label="Schließen">×</button></h2>
+    <div class="suchzeile">
+      <input class="feld" id="pickerSuche" type="search" placeholder="Raumnummer oder Beschreibung suchen …">
+      <label class="schalter" style="align-items:center"><input type="checkbox" id="cbNurFrei"> Nur freie Räume</label>
+    </div>
+    <div class="filterreihe" id="pickerFilter"></div>
+  </div>
+  <div class="fenster-inhalt" id="pickerInhalt"></div>
+</dialog>
+
+<!-- Code eingeben -->
+<dialog id="codeDialog" aria-labelledby="codeTitel">
+  <div class="fenster-kopf">
+    <h2><span id="codeTitel">Projekt bearbeiten</span>
+      <button class="schliessen" type="button" data-schliessen aria-label="Schließen">×</button></h2>
+  </div>
+  <div class="fenster-inhalt">
+    <p style="margin-top:0">Gib den Änderungscode ein, den du bei der Buchung bekommen hast.</p>
+    <input class="feld codefeld" id="fCode" type="text" maxlength="6" autocomplete="off" placeholder="A1B2C3">
+    <p class="warnung" id="codeFehler" hidden></p>
+  </div>
+  <div class="fenster-fuss">
+    <button class="knopf zurueck" type="button" data-schliessen>Abbrechen</button>
+    <button class="knopf" id="btnCodeLaden" type="button">Projekt laden</button>
+  </div>
+</dialog>
+
+
+<div class="meldung" id="meldung" role="status" hidden></div>
+
+<script>
+/* =========================================================
+   0 · Verbindung
+   ========================================================= */
+
+const SUPABASE_URL = "https://xzhxqbyobdlyqkyyjcxc.supabase.co";
+const SUPABASE_KEY = "sb_publishable_TlasNLd2Yxq8nxrkgHMnlA_J5-IezYg";
+
+/* =========================================================
+   1 · Zustand
+   ========================================================= */
+
+const STUNDEN_WAHL = false;     // true = Kollegen dürfen einzelne Stunden buchen
+const TAGE = ["", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag"];
+const TAGE_KURZ = ["", "Mo", "Di", "Mi", "Do", "Fr"];
+const KLASSEN_VORLAGEN = [
+  ["5–6", 5, 6], ["7–8", 7, 8], ["9–10", 9, 10],
+  ["Sek I (5–10)", 5, 10], ["Sek II (11–12)", 11, 12], ["Alle (5–12)", 5, 12]
+];
+
+const daten = { raeume: [], gruppen: [], raumGruppen: [], projekte: [], buchungen: [], status: {} };
+let form = null;
+let bearbeiten = null;
+let gespeichert = false;          // Bestätigung nach dem Speichern anzeigen           // { id, code } beim Ändern per Code
+const picker = { tag: 1, trakt: "alle", gruppe: null, suche: "", nurFrei: false };
+
+function leeresFormular() {
+  const tage = {};
+  for (let t = 1; t <= 5; t++) tage[t] = { aktiv: true, raum: null, ort: "", ganz: true, von: 2, bis: 6 };
+  return { thema: "", kuerzel: "", name: "", mitwirkende: "", kosten: "", kostenInfo: "", beschreibung: "", kVon: 5, kBis: 12, code: false, tage };
+}
+
+const $ = (id) => document.getElementById(id);
+
+function el(tag, klasse, text) {
+  const e = document.createElement(tag);
+  if (klasse) e.className = klasse;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+/* =========================================================
+   2 · Datenbank
+   ========================================================= */
+
+function kopfzeilen() {
+  const kopf = { apikey: SUPABASE_KEY, "Content-Type": "application/json" };
+  /* Alte anon-Keys (JWT) brauchen zusätzlich den Authorization-Kopf, neue sb_publishable-Keys nicht */
+  if (SUPABASE_KEY.startsWith("eyJ")) kopf.Authorization = "Bearer " + SUPABASE_KEY;
+  return kopf;
+}
+
+async function fehlertext(antwort) {
+  try {
+    const j = await antwort.json();
+    return j.message || j.error || "Fehler " + antwort.status;
+  } catch (e) {
+    return "Fehler " + antwort.status;
+  }
+}
+
+async function lesen(pfad) {
+  const r = await fetch(SUPABASE_URL + "/rest/v1/" + pfad, { headers: kopfzeilen() });
+  if (!r.ok) throw new Error(await fehlertext(r));
+  return r.json();
+}
+
+async function rpc(funktion, parameter) {
+  const r = await fetch(SUPABASE_URL + "/rest/v1/rpc/" + funktion, {
+    method: "POST", headers: kopfzeilen(), body: JSON.stringify(parameter || {})
+  });
+  if (!r.ok) throw new Error(await fehlertext(r));
+  const text = await r.text();
+  return text ? JSON.parse(text) : null;
+}
+
+async function laden() {
+  const [raeume, gruppen, raumGruppen, projekte, buchungen, status] = await Promise.all([
+    lesen("pw_rooms?select=*&order=nummer"),
+    lesen("pw_groups?select=*&order=name"),
+    lesen("pw_room_groups?select=*"),
+    lesen("pw_projects?select=*"),
+    lesen("pw_bookings?select=*"),
+    rpc("pw_get_status")
+  ]);
+  Object.assign(daten, { raeume, gruppen, raumGruppen, projekte, buchungen, status: status || {} });
+}
+
+/* =========================================================
+   3 · Hilfen für Räume und Belegung
+   ========================================================= */
+
+const raumInfo = (nr) => daten.raeume.find((r) => r.nummer === nr);
+const istExkursion = (nr) => !!(raumInfo(nr) || {}).ist_exkursion;
+const vonStd = (d) => (d.ganz ? 2 : d.von);
+const bisStd = (d) => (d.ganz ? 6 : d.bis);
+const aktiveTage = () => [1, 2, 3, 4, 5].filter((t) => form.tage[t].aktiv);
+
+function projektName(id) {
+  const p = daten.projekte.find((x) => x.id === id);
+  return p ? p.kuerzel + " – " + p.thema : "?";
+}
+
+function projektKuerzel(id) {
+  const p = daten.projekte.find((x) => x.id === id);
+  return p ? p.kuerzel : "?";
+}
+
+/* Buchungen anderer Projekte in diesem Raum an diesem Tag */
+function belegungen(raum, tag) {
+  return daten.buchungen.filter((b) =>
+    b.room === raum && b.tag === tag && (!bearbeiten || b.project_id !== bearbeiten.id));
+}
+
+function konflikt(raum, tag, von, bis) {
+  if (istExkursion(raum)) return null;
+  return belegungen(raum, tag).find((b) => b.std_von <= bis && b.std_bis >= von) || null;
+}
+
+function beschrZaehlen() {
+  const n = $("fBeschr").value.length;
+  const z = $("beschrZaehler");
+  z.textContent = n + " / 300";
+  z.style.color = n >= 280 ? "var(--orange)" : "var(--tinte-leise)";
+}
+
+function kostenZahl(text) {
+  const t = String(text || "").trim().replace(",", ".");
+  if (!t) return 0;
+  const n = Number(t);
+  return isNaN(n) ? NaN : Math.round(n * 100) / 100;
+}
+
+function kostenText(betrag, info) {
+  const n = Number(betrag) || 0;
+  if (!n) return "kostenlos";
+  return n.toLocaleString("de-DE", { style: "currency", currency: "EUR" }) + (info ? " (" + info + ")" : "");
+}
+
+function stundenText(von, bis) {
+  return von <= 2 && bis === 6 ? "ganztägig" : von === bis ? von + ". Std." : von + ".–" + bis + ". Std.";
+}
+
+function belegtText(liste) {
+  return liste.map((b) => projektName(b.project_id) + " (" + stundenText(b.std_von, b.std_bis) + ")").join(", ");
+}
+
+function etageText(e) {
+  if (e === 1) return "Erdgeschoss";
+  if (e === 0) return "Untergeschoss";
+  return (e - 1) + ". Obergeschoss";
+}
+
+function raumText(nr) {
+  if (istExkursion(nr)) return "Exkursion";
+  const r = raumInfo(nr);
+  return r && r.beschreibung ? nr + " · " + r.beschreibung : nr;
+}
+
+function datum(tag) {
+  const s = daten.status.woche_start;
+  if (!s) return "";
+  const d = new Date(s + "T12:00:00");
+  d.setDate(d.getDate() + tag - 1);
+  return d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: tag === 5 ? "numeric" : undefined });
+}
+
+/* =========================================================
+   4 · Anzeige
+   ========================================================= */
+
+function renderAlles() {
+  renderKopf();
+  renderKlassen();
+  renderTage();
+  renderAbschluss();
+}
+
+function renderZaehler() {
+  const box = $("zaehler");
+  box.innerHTML = "";
+  const ziele = daten.status.tagesziele || [];
+  const gesamt = el("div", "zkachel");
+  gesamt.innerHTML = '<div class="k">Projekte gesamt</div><div class="w">' + daten.projekte.length + "</div>";
+  box.appendChild(gesamt);
+  for (let t = 1; t <= 5; t++) {
+    const n = new Set(daten.buchungen.filter((b) => b.tag === t).map((b) => b.project_id)).size;
+    const z = Number(ziele[t - 1]) || 0;
+    const k = el("div", "zkachel" + (z && n >= z ? " erreicht" : ""));
+    let h = '<div class="k">' + TAGE[t] + (datum(t) ? " · " + esc(datum(t).slice(0, 6)) : "") + '</div><div class="w">' + n +
+      (z ? "<small> / " + z + "</small>" : "") + "</div>";
+    if (z) {
+      h += '<div class="balken"><i style="width:' + Math.min(100, Math.round(n / z * 100)) + '%"></i></div>' +
+        '<div class="r">' + (n >= z ? "Ziel erreicht" : "noch " + (z - n) + " fehlen") + "</div>";
+    } else {
+      h += '<div class="r">Projekte</div>';
+    }
+    k.innerHTML = h;
+    box.appendChild(k);
+  }
+}
+
+function renderKopf() {
+  renderZaehler();
+  const offen = daten.status.buchung_offen !== false;
+  const aenderbar = daten.status.aenderung_offen !== false;
+
+  $("titelDatum").textContent = daten.status.woche_start ? " " + datum(1) + "–" + datum(5) : "";
+  $("untertitel").textContent = "Projekt anlegen, Tage wählen, Raum buchen.";
+
+  const laeuft = !gespeichert && daten.status.woche_laeuft === true;
+  if (laeuft) bearbeiten = null;
+  const planAn = !laeuft && !gespeichert && !offen && !bearbeiten && daten.status.plan_sichtbar === true;
+  $("erfolg").hidden = !gespeichert;
+  $("werkbank").hidden = laeuft || gespeichert || !(offen || bearbeiten);
+  $("geschlossen").hidden = laeuft || gespeichert || offen || !!bearbeiten || planAn;
+  $("plan").hidden = !planAn;
+  $("heute").hidden = !laeuft;
+  const infoAn = !$("geschlossen").hidden;
+  $("zaehler").hidden = planAn || laeuft || infoAn;
+  $("schrittreihe").hidden = planAn || laeuft || infoAn;
+  if (infoAn) $("untertitel").textContent = "Noch nicht freigeschaltet";
+  if (planAn) {
+    $("untertitel").textContent = "Projektplan: alle Projekte, Räume und Lehrkräfte";
+    renderPlan();
+  }
+  if (laeuft) renderHeute();
+  $("btnCode").hidden = laeuft || infoAn || !aenderbar || !!bearbeiten;
+  $("codeZeile").hidden = !aenderbar || !!bearbeiten;
+  $("leiste").hidden = !bearbeiten;
+  if (bearbeiten) $("leisteThema").textContent = "„" + form.thema + "“";
+  $("btnBuchen").textContent = bearbeiten ? "Änderungen speichern" : "Verbindlich buchen";
+}
+
+function formularFuellen() {
+  $("fThema").value = form.thema;
+  $("fKuerzel").value = form.kuerzel;
+  $("fName").value = form.name;
+  $("fMit").value = form.mitwirkende;
+  $("fKosten").value = form.kosten;
+  $("fKostenInfo").value = form.kostenInfo;
+  $("fBeschr").value = form.beschreibung;
+  beschrZaehlen();
+  $("fVon").value = form.kVon;
+  $("fBis").value = form.kBis;
+  $("cbCode").checked = form.code;
+  $("fehlerliste").hidden = true;
+}
+
+function renderKlassen() {
+  const box = $("klassenChips");
+  box.innerHTML = "";
+  KLASSEN_VORLAGEN.forEach(([name, von, bis]) => {
+    const b = el("button", "filter", name);
+    b.type = "button";
+    b.setAttribute("aria-pressed", String(form.kVon === von && form.kBis === bis));
+    b.onclick = () => {
+      form.kVon = von; form.kBis = bis;
+      $("fVon").value = von; $("fBis").value = bis;
+      renderKlassen(); renderAbschluss();
+    };
+    box.appendChild(b);
+  });
+}
+
+function renderTage() {
+  const box = $("tage");
+  box.innerHTML = "";
+
+  for (let t = 1; t <= 5; t++) {
+    const d = form.tage[t];
+    const zeile = el("div", "tag" + (d.aktiv ? "" : " aus"));
+
+    /* Tag an/aus */
+    const knopf = el("button", "tagknopf");
+    knopf.type = "button";
+    knopf.setAttribute("aria-pressed", String(d.aktiv));
+    knopf.setAttribute("aria-label", TAGE[t] + (d.aktiv ? " – Projekt findet statt" : " – kein Projekt"));
+    knopf.innerHTML = '<span class="haken">' + (d.aktiv ? "✓" : "") + "</span><span><b>" +
+      TAGE[t] + "</b><small>" + esc(datum(t) || "\u00a0") + "</small></span>";
+    knopf.onclick = () => { d.aktiv = !d.aktiv; renderTage(); renderAbschluss(); };
+    zeile.appendChild(knopf);
+
+    if (!d.aktiv) {
+      zeile.appendChild(el("div", "tag-aus-text", "An diesem Tag kein Projekt – zum Aktivieren den Tag anklicken."));
+      box.appendChild(zeile);
+      continue;
+    }
+
+    /* Raum */
+    const mitte = el("div", "tag-mitte");
+    const wahl = el("button", "raumwahl" + (d.raum ? "" : " leer"));
+    wahl.type = "button";
+    if (d.raum) {
+      wahl.innerHTML = istExkursion(d.raum)
+        ? "🚌 <b>Exkursion</b>"
+        : "<b>" + esc(d.raum) + "</b>" + (raumInfo(d.raum) && raumInfo(d.raum).beschreibung
+            ? " · " + esc(raumInfo(d.raum).beschreibung) : "");
+      wahl.title = "Raum ändern";
+    } else {
+      wahl.textContent = "＋ Raum wählen";
+    }
+    wahl.onclick = () => pickerOeffnen(t);
+    mitte.appendChild(wahl);
+
+    if (d.raum && istExkursion(d.raum)) {
+      const ort = el("input", "feld");
+      ort.type = "text";
+      ort.maxLength = 100;
+      ort.placeholder = "Ziel der Exkursion, z. B. Serengeti-Park";
+      ort.value = d.ort;
+      ort.setAttribute("aria-label", "Ziel der Exkursion am " + TAGE[t]);
+      ort.oninput = () => { d.ort = ort.value; renderAbschluss(); };
+      mitte.appendChild(ort);
+    }
+
+    const k = d.raum ? konflikt(d.raum, t, vonStd(d), bisStd(d)) : null;
+    if (k) {
+      mitte.appendChild(el("div", "warnung",
+        "Zu dieser Zeit belegt: " + projektName(k.project_id) + " (" + stundenText(k.std_von, k.std_bis) +
+        "). Bitte anderen Raum oder andere Stunden wählen."));
+    }
+    zeile.appendChild(mitte);
+
+    /* Stunden */
+    const stunden = el("div", "stunden");
+    const reihe = el("div", "filterreihe");
+    [["Ganztägig", true], ["Einzelne Std.", false]].forEach(([text, ganz]) => {
+      const b = el("button", "filter", text);
+      b.type = "button";
+      b.setAttribute("aria-pressed", String(d.ganz === ganz));
+      b.onclick = () => { d.ganz = ganz; renderTage(); renderAbschluss(); };
+      reihe.appendChild(b);
+    });
+    stunden.appendChild(reihe);
+
+    if (!d.ganz) {
+      const auswahl = el("div", "stunden-auswahl");
+      const sVon = stundenSelect(d.von, (w) => { d.von = w; if (d.bis < w) d.bis = w; });
+      const sBis = stundenSelect(d.bis, (w) => { d.bis = w; if (d.von > w) d.von = w; });
+      sVon.setAttribute("aria-label", "von Stunde");
+      sBis.setAttribute("aria-label", "bis Stunde");
+      auswahl.append(el("span", "", "Std."), sVon, el("span", "", "bis"), sBis);
+      stunden.appendChild(auswahl);
+    }
+    /* Auswahl „Ganztägig / Einzelne Std.“ ist abgeschaltet – gebucht wird immer 2.–6. Stunde */
+    if (STUNDEN_WAHL) zeile.appendChild(stunden);
+
+    box.appendChild(zeile);
+  }
+}
+
+function stundenSelect(wert, beiAenderung) {
+  const s = el("select", "feld");
+  for (let i = 2; i <= 6; i++) {
+    const o = el("option", "", i + ".");
+    o.value = i;
+    if (i === wert) o.selected = true;
+    s.appendChild(o);
+  }
+  s.onchange = () => { beiAenderung(Number(s.value)); renderTage(); renderAbschluss(); };
+  return s;
+}
+
+function renderAbschluss() {
+  const liste = $("zusammenfassung");
+  liste.innerHTML = "";
+  for (let t = 1; t <= 5; t++) {
+    const d = form.tage[t];
+    const li = el("li");
+    li.appendChild(el("span", "t", TAGE_KURZ[t]));
+    let text, leise = false;
+    if (!d.aktiv) { text = "kein Projekt"; leise = true; }
+    else if (!d.raum) { text = "noch kein Raum gewählt"; leise = true; }
+    else {
+      text = istExkursion(d.raum) ? "Exkursion" + (d.ort.trim() ? " · " + d.ort.trim() : "") : raumText(d.raum);
+      text += " · " + stundenText(vonStd(d), bisStd(d));
+    }
+    li.appendChild(el("span", leise ? "leise" : "", text));
+    liste.appendChild(li);
+  }
+  const k = kostenZahl(form.kosten);
+  const lk = el("li");
+  lk.appendChild(el("span", "t", "€"));
+  lk.appendChild(el("span", isNaN(k) ? "leise" : "", isNaN(k) ? "Betrag prüfen" : kostenText(k, form.kostenInfo.trim()) + (k ? " pro Schüler" : "")));
+  liste.appendChild(lk);
+  renderKopf();
+}
+
+/* =========================================================
+   4b · Projektplan (Lese-Ansicht nach der Buchungsphase)
+   ========================================================= */
+
+const plan = { ansicht: "tag", tag: null, suche: "", klasse: "alle", kosten: "alle", sort: "raum" };
+
+function heuteTag() {
+  const s = daten.status.woche_start;
+  if (!s) return null;
+  const start = new Date(s + "T00:00:00");
+  const heute = new Date();
+  heute.setHours(0, 0, 0, 0);
+  const d = Math.round((heute - start) / 86400000);
+  return d >= 0 && d <= 4 ? d + 1 : null;
+}
+
+const projektVon = (id) => daten.projekte.find((p) => p.id === id);
+
+function klassenKurz(p) {
+  return p.klasse_von === p.klasse_bis ? String(p.klasse_von) : p.klasse_von + "–" + p.klasse_bis;
+}
+
+function lehrkraftHtml(p, b) {
+  let h = esc(p.kuerzel + (p.mitwirkende ? ", " + p.mitwirkende : ""));
+  if (b && b.krank && b.vertretung) h += '<small class="vertretung">Vertretung: ' + esc(b.vertretung) + "</small>";
+  return h;
+}
+
+function ortHtml(b) {
+  if (istExkursion(b.room)) return '<span class="raumnr">Exkursion</span>' + (b.ort ? "<small>" + esc(b.ort) + "</small>" : "");
+  const r = raumInfo(b.room);
+  return '<span class="raumnr">' + esc(b.room) + "</span>" + (r && r.beschreibung ? "<small>" + esc(r.beschreibung) + "</small>" : "");
+}
+
+function planPasst(p) {
+  if (!p) return false;
+  const k = plan.klasse;
+  if (k === "sek1" && !(p.klasse_von <= 10 && p.klasse_bis >= 5)) return false;
+  if (k === "sek2" && !(p.klasse_bis >= 11)) return false;
+  if (/^\d+$/.test(k) && !(p.klasse_von <= +k && p.klasse_bis >= +k)) return false;
+  const n = Number(p.kosten) || 0;
+  if (plan.kosten === "frei" && n) return false;
+  if (plan.kosten === "mit" && !n) return false;
+  const q = plan.suche.trim().toLowerCase();
+  if (!q) return true;
+  const orte = daten.buchungen.filter((b) => b.project_id === p.id).map((b) => b.room + " " + (b.ort || "") + " " + (b.vertretung || "")).join(" ");
+  return (p.thema + " " + p.kuerzel + " " + (p.mitwirkende || "") + " " + (p.kosten_info || "") + " " + orte).toLowerCase().includes(q);
+}
+
+function planSortieren(liste) {
+  const ex = (b) => (!b ? 2 : istExkursion(b.room) ? 1 : 0);
+  return liste.sort((x, y) => {
+    let c = 0;
+    if (plan.sort === "raum") c = ex(x.b) - ex(y.b) || (x.b && y.b ? x.b.room.localeCompare(y.b.room, "de", { numeric: true }) : 0);
+    else if (plan.sort === "kuerzel") c = x.p.kuerzel.localeCompare(y.p.kuerzel, "de");
+    else if (plan.sort === "klasse") c = x.p.klasse_von - y.p.klasse_von || x.p.klasse_bis - y.p.klasse_bis;
+    return c || x.p.thema.localeCompare(y.p.thema, "de");
+  });
+}
+
+function planAuswahl(werte, wert, beiAenderung, label) {
+  const box = el("div");
+  const l = el("label", "label", label);
+  const sel = el("select", "feld");
+  sel.id = "plan" + label.replace(/\W/g, "");
+  l.htmlFor = sel.id;
+  werte.forEach(([w, t]) => {
+    const o = el("option", "", t);
+    o.value = w;
+    if (String(w) === String(wert)) o.selected = true;
+    sel.appendChild(o);
+  });
+  sel.onchange = () => { beiAenderung(sel.value); planInhalt(); };
+  box.append(l, sel);
+  return box;
+}
+
+function renderPlan() {
+  if (plan.tag === null) plan.tag = heuteTag() || 1;
+
+  const reiter = $("planReiter");
+  reiter.innerHTML = "";
+  [["tag", "Tagesplan"], ["woche", "Wochenübersicht"], ["raeume", "Raumbelegung"]].forEach(([w, t]) => {
+    const b = el("button", "filter", t);
+    b.type = "button";
+    b.setAttribute("aria-pressed", String(plan.ansicht === w));
+    b.onclick = () => { plan.ansicht = w; renderPlan(); };
+    reiter.appendChild(b);
+  });
+
+  const steuer = $("planSteuer");
+  steuer.innerHTML = "";
+  const heute = heuteTag();
+  if (plan.ansicht === "tag") {
+    steuer.appendChild(planAuswahl([1, 2, 3, 4, 5].map((t) => [t, TAGE[t] + (datum(t) ? ", " + datum(t).slice(0, 6) : "") + (t === heute ? " (heute)" : "")]),
+      plan.tag, (v) => { plan.tag = Number(v); }, "Tag"));
+  }
+  const klassen = [["alle", "Alle Klassen"], ["sek1", "Sek I (5–10)"], ["sek2", "Sek II (11–12)"]];
+  for (let i = 5; i <= 12; i++) klassen.push([String(i), "Klasse " + i]);
+  steuer.appendChild(planAuswahl(klassen, plan.klasse, (v) => { plan.klasse = v; }, "Klassenstufe"));
+  steuer.appendChild(planAuswahl([["alle", "Alle"], ["frei", "Nur kostenlose"], ["mit", "Nur mit Kosten"]], plan.kosten, (v) => { plan.kosten = v; }, "Kosten"));
+  if (plan.ansicht !== "raeume") {
+    steuer.appendChild(planAuswahl([["raum", "Raum"], ["thema", "Thema"], ["kuerzel", "Kürzel"], ["klasse", "Klassenstufe"]], plan.sort, (v) => { plan.sort = v; }, "Sortieren nach"));
+  }
+  const sb = el("div", "breit");
+  const sl = el("label", "label", "Suche");
+  const si = el("input", "feld");
+  si.type = "search"; si.id = "planSuche"; si.placeholder = "Thema, Kürzel, Raum …"; si.value = plan.suche;
+  sl.htmlFor = si.id;
+  si.oninput = () => { plan.suche = si.value; planInhalt(); };
+  sb.append(sl, si);
+  steuer.appendChild(sb);
+
+  planInhalt();
+}
+
+function planInhalt() {
+  const box = $("planInhalt");
+  box.innerHTML = "";
+  const huelle = el("div", "ptab-huelle");
+  const t = el("table", "ptab");
+  const heute = heuteTag();
+  let h = "", anzahl = 0;
+
+  if (plan.ansicht === "tag") {
+    const liste = planSortieren(daten.buchungen.filter((b) => b.tag === plan.tag)
+      .map((b) => ({ b, p: projektVon(b.project_id) })).filter((x) => planPasst(x.p)));
+    anzahl = liste.length;
+    h = "<thead><tr><th>Raum / Ort</th><th>Projekt</th><th>Klassen</th><th>Kosten</th><th>Lehrkräfte</th><th>Zeit</th></tr></thead><tbody>";
+    liste.forEach(({ b, p }) => {
+      h += "<tr><td>" + ortHtml(b) + '</td><td><span class="thema">' + esc(p.thema) + "</span>" + (p.beschreibung ? "<small>" + esc(p.beschreibung) + "</small>" : "") + "</td><td>" + klassenKurz(p) + "</td><td>" +
+        esc(kostenText(p.kosten, p.kosten_info)) + "</td><td>" + lehrkraftHtml(p, b) + "</td><td>" + esc(stundenText(b.std_von, b.std_bis)) + "</td></tr>";
+    });
+    if (!anzahl) h += '<tr><td colspan="6" class="plan-leer">Keine Projekte für diese Auswahl.</td></tr>';
+  }
+
+  if (plan.ansicht === "woche") {
+    const liste = planSortieren(daten.projekte.filter(planPasst).map((p) => ({
+      p, b: daten.buchungen.filter((b) => b.project_id === p.id).sort((a, c) => a.tag - c.tag)[0] || null })));
+    anzahl = liste.length;
+    h = "<thead><tr><th>Projekt</th><th>Klassen</th><th>Kosten</th><th>Lehrkräfte</th>";
+    for (let d = 1; d <= 5; d++) h += '<th class="' + (d === heute ? "heute" : "") + '">' + TAGE[d] + (datum(d) ? "<br>" + datum(d).slice(0, 6) : "") + "</th>";
+    h += "</tr></thead><tbody>";
+    liste.forEach(({ p }) => {
+      h += '<tr><td><span class="thema">' + esc(p.thema) + "</span>" + (p.beschreibung ? "<small>" + esc(p.beschreibung) + "</small>" : "") + "</td><td>" + klassenKurz(p) + "</td><td>" + esc(kostenText(p.kosten, p.kosten_info)) +
+        "</td><td>" + lehrkraftHtml(p) + "</td>";
+      for (let d = 1; d <= 5; d++) {
+        const bs = daten.buchungen.filter((b) => b.project_id === p.id && b.tag === d);
+        h += '<td class="' + (d === heute ? "heute" : "") + '">' + (bs.length ? bs.map((b) => ortHtml(b) +
+          (b.std_von <= 2 && b.std_bis === 6 ? "" : "<small>" + esc(stundenText(b.std_von, b.std_bis)) + "</small>") +
+          (b.krank && b.vertretung ? '<small class="vertretung">Vertretung: ' + esc(b.vertretung) + "</small>" : "")).join("<br>")
+          : '<span class="plan-leer" style="padding:0">–</span>') + "</td>";
+      }
+      h += "</tr>";
+    });
+    if (!anzahl) h += '<tr><td colspan="9" class="plan-leer">Keine Projekte für diese Auswahl.</td></tr>';
+  }
+
+  if (plan.ansicht === "raeume") {
+    const q = plan.suche.trim().toLowerCase();
+    const passend = daten.buchungen.filter((b) => planPasst(projektVon(b.project_id)));
+    const raeume = daten.raeume.filter((r) => passend.some((b) => b.room === r.nummer) ||
+      (q && !r.versteckt && (r.nummer + " " + (r.beschreibung || "")).toLowerCase().includes(q)))
+      .sort((a, c) => (a.ist_exkursion - c.ist_exkursion) || a.nummer.localeCompare(c.nummer, "de", { numeric: true }));
+    anzahl = raeume.length;
+    h = "<thead><tr><th>Raum</th>";
+    for (let d = 1; d <= 5; d++) h += '<th class="' + (d === heute ? "heute" : "") + '">' + TAGE[d] + (datum(d) ? "<br>" + datum(d).slice(0, 6) : "") + "</th>";
+    h += "</tr></thead><tbody>";
+    raeume.forEach((r) => {
+      h += "<tr><td>" + (r.ist_exkursion ? '<span class="raumnr">Exkursion</span>' :
+        '<span class="raumnr">' + esc(r.nummer) + "</span>" + (r.beschreibung ? "<small>" + esc(r.beschreibung) + "</small>" : "")) + "</td>";
+      for (let d = 1; d <= 5; d++) {
+        const bs = passend.filter((b) => b.room === r.nummer && b.tag === d).sort((a, c) => a.std_von - c.std_von);
+        h += '<td class="' + (d === heute ? "heute" : "") + '">' + bs.map((b) => {
+          const p = projektVon(b.project_id);
+          return '<div class="belegung"><b>' + esc(p.kuerzel) + "</b> " + esc(p.thema) +
+            ((b.std_von <= 2 && b.std_bis === 6) && !b.ort && !(b.krank && b.vertretung) ? "" : "<small>" + esc([
+              b.std_von <= 2 && b.std_bis === 6 ? "" : stundenText(b.std_von, b.std_bis),
+              b.ort || "", b.krank && b.vertretung ? "Vertretung: " + b.vertretung : ""].filter(Boolean).join(" · ")) + "</small>") + "</div>";
+        }).join("") + "</td>";
+      }
+      h += "</tr>";
+    });
+    if (!anzahl) h += '<tr><td colspan="6" class="plan-leer">Keine Belegungen für diese Auswahl.</td></tr>';
+  }
+
+  t.innerHTML = h + "</tbody>";
+  huelle.appendChild(t);
+  box.appendChild(huelle);
+  $("planStand").textContent = (plan.ansicht === "raeume" ? anzahl + (anzahl === 1 ? " Raum" : " Räume") : anzahl + (anzahl === 1 ? " Eintrag" : " Einträge")) +
+    " · Stand " + new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) + " Uhr · aktualisiert sich automatisch";
+}
+
+/* ---------- Belegungsmeldung „Projekt voll“ ---------- */
+let heuteWahl = null;   // nur im Testbetrieb außerhalb der Projektwoche
+
+function renderHeute() {
+  const echt = heuteTag();
+  const t = echt || heuteWahl || 1;
+  $("heuteTitel").textContent = "Projekte am " + TAGE[t] + (datum(t) ? ", " + datum(t) : "");
+  $("untertitel").textContent = "Die Projektwoche läuft · Belegung melden";
+
+  const test = $("heuteTest");
+  test.innerHTML = "";
+  if (!echt) {
+    test.appendChild(el("p", "warnung", "Heute ist kein Tag der Projektwoche – Testansicht. Tag wählen:"));
+    const reihe = el("div", "filterreihe");
+    reihe.style.margin = "8px 0 6px";
+    [1, 2, 3, 4, 5].forEach((d) => {
+      const b = el("button", "filter", TAGE[d]);
+      b.type = "button";
+      b.setAttribute("aria-pressed", String(d === t));
+      b.onclick = () => { heuteWahl = d; renderHeute(); };
+      reihe.appendChild(b);
+    });
+    test.appendChild(reihe);
+  }
+
+  const q = $("heuteSuche").value.trim().toLowerCase();
+  const liste = daten.buchungen.filter((b) => b.tag === t)
+    .map((b) => ({ b, p: projektVon(b.project_id) })).filter((x) => x.p)
+    .filter(({ b, p }) => !q || (p.kuerzel + " " + (p.mitwirkende || "") + " " + p.thema + " " + b.room + " " + (b.ort || "") + " " + (b.vertretung || "")).toLowerCase().includes(q))
+    .sort((x, y) => (istExkursion(x.b.room) - istExkursion(y.b.room)) || x.b.room.localeCompare(y.b.room, "de", { numeric: true }));
+
+  const box = $("heuteListe");
+  box.innerHTML = "";
+  liste.forEach(({ b, p }) => {
+    const z = el("div", "hzeile" + (b.voll ? " voll" : " frei"));
+    const r = raumInfo(b.room);
+    const raum = el("div", "hraum");
+    raum.textContent = istExkursion(b.room) ? "Exkursion" : b.room;
+    const sub = istExkursion(b.room) ? (b.ort || "") : (r && r.beschreibung) || "";
+    if (sub) raum.appendChild(el("small", "", sub));
+    const mitte = el("div");
+    mitte.appendChild(el("div", "hthema", p.thema));
+    mitte.appendChild(el("div", "hwer", p.kuerzel + (p.mitwirkende ? ", " + p.mitwirkende : "") +
+      (b.krank && b.vertretung ? " · Vertretung: " + b.vertretung : "") +
+      (b.std_von <= 2 && b.std_bis === 6 ? "" : " · " + stundenText(b.std_von, b.std_bis))));
+    const rechts = el("div", "hknopf");
+    if (b.voll) {
+      rechts.appendChild(el("span", "voll-text", "● Als voll gemeldet"));
+      const zur = el("button", "linkknopf", "Meldung zurücknehmen");
+      zur.type = "button";
+      zur.onclick = () => vollMelden(b, p, false);
+      rechts.appendChild(zur);
+    } else {
+      rechts.appendChild(el("span", "frei-text", "● Noch freie Plätze"));
+      const k = el("button", "knopf voll-melden", "Projekt als voll melden");
+      k.type = "button";
+      k.onclick = () => vollMelden(b, p, true);
+      rechts.appendChild(k);
+    }
+    z.append(raum, mitte, rechts);
+    box.appendChild(z);
+  });
+  if (!liste.length) box.appendChild(el("p", "plan-leer", q ? "Keine Treffer." : "An diesem Tag sind keine Projekte eingetragen."));
+  $("heuteStand").textContent = liste.length + (liste.length === 1 ? " Projekt" : " Projekte") + " · Stand " +
+    new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) + " Uhr · aktualisiert sich automatisch";
+}
+
+async function vollMelden(b, p, voll) {
+  const frage = voll
+    ? "„" + p.thema + "“ (" + (istExkursion(b.room) ? "Exkursion" : b.room) + ") als VOLL melden?"
+    : "Meldung für „" + p.thema + "“ zurücknehmen? Das Projekt gilt dann wieder als frei.";
+  if (!confirm(frage)) return;
+  try {
+    await rpc("pw_set_voll", { p_booking: b.id, p_voll: voll });
+    await laden();
+    renderKopf();
+    meldung(voll ? "Gemeldet: „" + p.thema + "“ ist voll." : "Meldung zurückgenommen.");
+  } catch (e) {
+    meldung(e.message, true);
+  }
+}
+
+/* Plan bzw. Tagesansicht alle 2 Minuten aktualisieren */
+setInterval(async () => {
+  if ($("plan").hidden && $("heute").hidden) return;
+  try { await laden(); renderKopf(); } catch (e) { /* nächster Versuch */ }
+}, 120000);
+
+/* =========================================================
+   5 · Raumauswahl
+   ========================================================= */
+
+function pickerOeffnen(tag) {
+  picker.tag = tag;
+  $("pickerTitel").textContent = "Raum für " + TAGE[tag] + (datum(tag) ? ", " + datum(tag) : "") + " wählen";
+  $("pickerSuche").value = picker.suche;
+  $("cbNurFrei").checked = picker.nurFrei;
+  renderPickerFilter();
+  renderPicker();
+  $("picker").showModal();
+
+  /* Belegung frisch holen, damit niemand auf veralteten Stand bucht */
+  laden().then(() => { renderPicker(); renderTage(); }).catch(() => {});
+}
+
+function renderPickerFilter() {
+  const box = $("pickerFilter");
+  box.innerHTML = "";
+  const trakte = [...new Set(daten.raeume.filter((r) => r.trakt !== null && !r.versteckt).map((r) => r.trakt))].sort();
+
+  const chip = (text, aktiv, klick) => {
+    const b = el("button", "filter", text);
+    b.type = "button";
+    b.setAttribute("aria-pressed", String(aktiv));
+    b.onclick = () => { klick(); renderPickerFilter(); renderPicker(); };
+    box.appendChild(b);
+  };
+
+  chip("Alle", picker.trakt === "alle" && picker.gruppe === null, () => { picker.trakt = "alle"; picker.gruppe = null; });
+  trakte.forEach((tr) => chip("Trakt " + tr, picker.trakt === tr, () => { picker.trakt = tr; picker.gruppe = null; }));
+  daten.gruppen.forEach((g) => chip(g.name, picker.gruppe === g.id, () => { picker.gruppe = g.id; picker.trakt = "alle"; }));
+}
+
+function renderPicker() {
+  const box = $("pickerInhalt");
+  box.innerHTML = "";
+  const t = picker.tag, d = form.tage[t], von = vonStd(d), bis = bisStd(d);
+  const q = picker.suche.trim().toLowerCase();
+  const gruppenRaeume = picker.gruppe === null ? null
+    : new Set(daten.raumGruppen.filter((x) => x.group_id === picker.gruppe).map((x) => x.room));
+
+  /* Exkursion */
+  if (picker.trakt === "alle" && !gruppenRaeume && (!q || "exkursion außer haus unterwegs".includes(q))) {
+    const exk = daten.raeume.filter((r) => r.ist_exkursion);
+    if (exk.length) box.appendChild(abschnitt("Außerhalb der Schule", exk, t, von, bis));
+  }
+
+  /* Schulräume */
+  let liste = daten.raeume.filter((r) => !r.ist_exkursion && !r.versteckt);
+  if (picker.trakt !== "alle") liste = liste.filter((r) => r.trakt === picker.trakt);
+  if (gruppenRaeume) liste = liste.filter((r) => gruppenRaeume.has(r.nummer));
+  if (q) liste = liste.filter((r) => (r.nummer + " " + (r.beschreibung || "")).toLowerCase().includes(q));
+  if (picker.nurFrei) liste = liste.filter((r) => !konflikt(r.nummer, t, von, bis));
+
+  const gruppiert = new Map();
+  liste.forEach((r) => {
+    const schluessel = r.trakt === null ? "9" : String(r.trakt);
+    if (!gruppiert.has(schluessel)) gruppiert.set(schluessel, []);
+    gruppiert.get(schluessel).push(r);
+  });
+
+  [...gruppiert.keys()].sort().forEach((s) => {
+    const raeume = gruppiert.get(s);
+    const r = raeume[0];
+    const titel = r.trakt === null ? "Weitere Räume" : "Trakt " + r.trakt;
+    box.appendChild(abschnitt(titel, raeume, t, von, bis));
+  });
+
+  if (!box.children.length) {
+    const nichts = daten.raeume.some((r) => !r.ist_exkursion)
+      ? "Keine passenden Räume gefunden."
+      : "Es sind noch keine Räume angelegt. Die Projektwochen-Leitung importiert die Raumliste im Admin-Bereich.";
+    box.appendChild(el("p", "leer-hinweis", nichts));
+  }
+}
+
+function abschnitt(titel, raeume, t, von, bis) {
+  const sek = el("section", "raumabschnitt");
+  sek.appendChild(el("h3", "", titel));
+  const gitter = el("div", "raumgitter");
+  raeume.forEach((r) => gitter.appendChild(raumKachel(r, t, von, bis)));
+  sek.appendChild(gitter);
+  return sek;
+}
+
+function raumKachel(r, t, von, bis) {
+  const b = el("button", "raum");
+  b.type = "button";
+  if (form.tage[t].raum === r.nummer) b.classList.add("gewaehlt");
+
+  let zustand, klasse;
+  if (r.ist_exkursion) {
+    zustand = "für beliebig viele Projekte"; klasse = "frei";
+  } else {
+    const andere = belegungen(r.nummer, t);
+    if (konflikt(r.nummer, t, von, bis)) {
+      zustand = "belegt: " + belegtText(andere); klasse = "belegt"; b.disabled = true;
+    } else if (andere.length) {
+      zustand = "frei · sonst belegt: " + belegtText(andere); klasse = "teil";
+    } else {
+      zustand = von <= 2 && bis === 6 ? "ganztägig frei" : "frei"; klasse = "frei";
+    }
+  }
+
+  b.innerHTML =
+    '<span class="nr">' + (r.ist_exkursion ? "🚌 Exkursion" : esc(r.nummer)) + "</span>" +
+    '<span class="bes">' + esc(r.ist_exkursion ? "Ziel trägst du danach ein" : (r.beschreibung || (r.etage !== null ? etageText(r.etage) : ""))) + "</span>" +
+    '<span class="zust ' + klasse + '">' + esc(zustand) + "</span>";
+
+  b.onclick = () => {
+    const d = form.tage[t];
+    if (d.raum !== r.nummer) d.ort = "";
+    d.raum = r.nummer;
+    $("picker").close();
+    renderTage();
+    renderAbschluss();
+  };
+  return b;
+}
+
+/* =========================================================
+   6 · Prüfen und Buchen
+   ========================================================= */
+
+function pruefen() {
+  const f = [];
+  if (!form.thema.trim()) f.push("Das Projektthema fehlt.");
+  const kz = form.kuerzel.trim().length;
+  if (!kz) f.push("Dein Kürzel fehlt.");
+  else if (kz < 2 || kz > 5) f.push("Das Kürzel muss 2 bis 5 Zeichen lang sein.");
+  if (!form.name.trim()) f.push("Dein Name fehlt.");
+  if (form.kosten.trim() && isNaN(kostenZahl(form.kosten))) f.push("Bei den Kosten bitte nur einen Betrag eingeben, z. B. 2,50.");
+  else if (kostenZahl(form.kosten) > 5) f.push("Die Kosten dürfen höchstens 5 € pro Schüler betragen.");
+  if (form.kVon > form.kBis) f.push("Bei den Klassenstufen ist „von“ größer als „bis“.");
+  const tage = aktiveTage();
+  if (!tage.length) f.push("Bitte mindestens einen Tag auswählen.");
+  tage.forEach((t) => {
+    const d = form.tage[t];
+    if (!d.raum) { f.push(TAGE[t] + ": Es ist noch kein Raum gewählt."); return; }
+    if (istExkursion(d.raum) && !d.ort.trim()) f.push(TAGE[t] + ": Das Ziel der Exkursion fehlt.");
+    if (konflikt(d.raum, t, vonStd(d), bisStd(d))) f.push(TAGE[t] + ": Raum " + d.raum + " ist zu dieser Zeit belegt.");
+  });
+  return f;
+}
+
+function fehlerZeigen(liste) {
+  const box = $("fehlerliste");
+  box.innerHTML = "";
+  liste.forEach((text) => box.appendChild(el("li", "", text)));
+  box.hidden = liste.length === 0;
+  if (liste.length) box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function buchungsDaten() {
+  return aktiveTage().map((t) => {
+    const d = form.tage[t];
+    return {
+      room: d.raum, tag: t,
+      std_von: vonStd(d), std_bis: bisStd(d),
+      ort: istExkursion(d.raum) ? d.ort.trim() : null
+    };
+  });
+}
+
+async function absenden() {
+  const fehler = pruefen();
+  fehlerZeigen(fehler);
+  if (fehler.length) return;
+
+  const parameter = {
+    p_thema: form.thema.trim(),
+    p_kuerzel: form.kuerzel.trim(),
+    p_name: form.name.trim(),
+    p_mitwirkende: form.mitwirkende.trim() || null,
+    p_kosten: kostenZahl(form.kosten),
+    p_kosten_info: form.kostenInfo.trim() || null,
+    p_beschreibung: form.beschreibung.trim() || null,
+    p_klasse_von: form.kVon,
+    p_klasse_bis: form.kBis,
+    p_buchungen: buchungsDaten()
+  };
+
+  const knopf = $("btnBuchen");
+  knopf.disabled = true;
+  try {
+    if (bearbeiten) {
+      await rpc("pw_project_update", Object.assign({ p_id: bearbeiten.id, p_code: bearbeiten.code }, parameter));
+      erfolgZeigen(null, true);
+    } else {
+      const code = await rpc("pw_book", Object.assign({ p_code_gewuenscht: form.code }, parameter));
+      erfolgZeigen(code, false);
+    }
+  } catch (e) {
+    fehlerZeigen([e.message]);
+    try { await laden(); renderTage(); } catch (x) { /* ignorieren */ }
+  } finally {
+    knopf.disabled = false;
+  }
+}
+
+function erfolgZeigen(code, geaendert) {
+  $("erfolgTitel").textContent = geaendert ? "Änderungen gespeichert" : "Eingaben gespeichert";
+  $("erfolgUnter").textContent = geaendert ? "Dein Projekt wurde aktualisiert." : "Dein Projekt ist verbindlich eingetragen.";
+  const box = $("erfolgInhalt");
+  box.innerHTML = "";
+
+  box.appendChild(el("p", "", "„" + form.thema.trim() + "“ ist eingetragen:"));
+  const liste = el("ul", "zusammenfassung");
+  aktiveTage().forEach((t) => {
+    const d = form.tage[t];
+    const li = el("li");
+    li.appendChild(el("span", "t", TAGE_KURZ[t]));
+    li.appendChild(el("span", "", (istExkursion(d.raum) ? "Exkursion · " + d.ort.trim() : raumText(d.raum)) +
+      " · " + stundenText(vonStd(d), bisStd(d))));
+    liste.appendChild(li);
+  });
+  const lk = el("li");
+  lk.appendChild(el("span", "t", "€"));
+  lk.appendChild(el("span", "", kostenText(kostenZahl(form.kosten), form.kostenInfo.trim())));
+  liste.appendChild(lk);
+  box.appendChild(liste);
+
+  if (code) {
+    box.appendChild(el("p", "", "Dein Änderungscode:"));
+    box.appendChild(el("div", "codeanzeige", code));
+    box.appendChild(el("p", "warnung",
+      "Bitte jetzt aufschreiben oder fotografieren. Der Code wird nicht noch einmal angezeigt."));
+  } else if (!geaendert) {
+    box.appendChild(el("p", "abschnitt-hinweis",
+      "Die Buchung ist fest. Änderungen bitte über die Projektwochen-Leitung."));
+  }
+  gespeichert = true;
+  bearbeiten = null;
+  laden().catch(() => {}).then(() => renderKopf());   /* Zähler aktualisieren */
+  renderKopf();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+async function zuruecksetzen() {
+  bearbeiten = null;
+  form = leeresFormular();
+  try { await laden(); } catch (e) { /* Anzeige mit altem Stand */ }
+  formularFuellen();
+  renderAlles();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/* =========================================================
+   7 · Ändern per Code
+   ========================================================= */
+
+async function codeLaden() {
+  const code = $("fCode").value.trim().toUpperCase();
+  const fehler = $("codeFehler");
+  fehler.hidden = true;
+  if (code.length < 6) { fehler.textContent = "Der Code hat sechs Zeichen."; fehler.hidden = false; return; }
+
+  const knopf = $("btnCodeLaden");
+  knopf.disabled = true;
+  try {
+    const id = await rpc("pw_find_by_code", { p_code: code });
+    if (!id) throw new Error("Zu diesem Code wurde kein Projekt gefunden.");
+    await laden();
+    const p = daten.projekte.find((x) => x.id === id);
+    if (!p) throw new Error("Das Projekt existiert nicht mehr.");
+
+    bearbeiten = { id, code };
+    form = leeresFormular();
+    Object.assign(form, {
+      thema: p.thema, kuerzel: p.kuerzel, name: p.name, mitwirkende: p.mitwirkende || "",
+      kosten: Number(p.kosten) ? String(p.kosten).replace(".", ",") : "", kostenInfo: p.kosten_info || "", beschreibung: p.beschreibung || "",
+      kVon: p.klasse_von, kBis: p.klasse_bis
+    });
+    for (let t = 1; t <= 5; t++) form.tage[t].aktiv = false;
+    daten.buchungen.filter((b) => b.project_id === id).forEach((b) => {
+      form.tage[b.tag] = {
+        aktiv: true, raum: b.room, ort: b.ort || "",
+        ganz: b.std_von <= 2 && b.std_bis === 6, von: b.std_von, bis: b.std_bis
+      };
+    });
+
+    $("codeDialog").close();
+    formularFuellen();
+    renderAlles();
+    meldung("Projekt geladen – du kannst es jetzt ändern.");
+  } catch (e) {
+    fehler.textContent = e.message;
+    fehler.hidden = false;
+  } finally {
+    knopf.disabled = false;
+  }
+}
+
+async function projektLoeschen() {
+  if (!bearbeiten) return;
+  if (!confirm("Projekt „" + form.thema + "“ mit allen Raumbuchungen wirklich löschen?")) return;
+  try {
+    await rpc("pw_project_delete", { p_id: bearbeiten.id, p_code: bearbeiten.code });
+    meldung("Projekt gelöscht.");
+    zuruecksetzen();
+  } catch (e) {
+    meldung(e.message, true);
+  }
+}
+
+/* =========================================================
+   8 · Bedienung
+   ========================================================= */
+
+let meldungsUhr;
+function meldung(text, fehler) {
+  const m = $("meldung");
+  m.textContent = text;
+  m.className = "meldung" + (fehler ? " fehler" : "");
+  m.hidden = false;
+  clearTimeout(meldungsUhr);
+  meldungsUhr = setTimeout(() => { m.hidden = true; }, 4000);
+}
+
+function feld(id, schluessel, umwandeln) {
+  $(id).addEventListener("input", (e) => {
+    if (umwandeln) e.target.value = umwandeln(e.target.value);
+    form[schluessel] = e.target.value;
+    renderAbschluss();
+  });
+}
+
+function bedienungEinrichten() {
+  $("heuteSuche").addEventListener("input", renderHeute);
+  feld("fThema", "thema");
+  feld("fKuerzel", "kuerzel", (v) => v.replace(/\s/g, ""));
+  feld("fName", "name");
+  feld("fMit", "mitwirkende");
+  feld("fKosten", "kosten", (v) => v.replace(/[^0-9,.]/g, ""));
+  feld("fKostenInfo", "kostenInfo");
+  feld("fBeschr", "beschreibung", (v) => v.replace(/\s*\n\s*/g, " ").slice(0, 300));
+  $("fBeschr").addEventListener("input", beschrZaehlen);
+
+  ["fVon", "fBis"].forEach((id) => {
+    const s = $(id);
+    for (let k = 5; k <= 12; k++) {
+      const o = el("option", "", "Klasse " + k);
+      o.value = k;
+      s.appendChild(o);
+    }
+    s.addEventListener("change", () => {
+      form.kVon = Number($("fVon").value);
+      form.kBis = Number($("fBis").value);
+      renderKlassen();
+    });
+  });
+
+  $("cbCode").addEventListener("change", (e) => { form.code = e.target.checked; });
+  $("btnBuchen").addEventListener("click", absenden);
+
+  $("btnAlle").addEventListener("click", () => {
+    const erster = aktiveTage().find((t) => form.tage[t].raum);
+    if (!erster) { meldung("Wähle zuerst für einen Tag einen Raum.", true); return; }
+    const quelle = form.tage[erster];
+    const belegt = [];
+    aktiveTage().forEach((t) => {
+      if (t === erster) return;
+      const d = form.tage[t];
+      if (konflikt(quelle.raum, t, vonStd(d), bisStd(d))) { belegt.push(TAGE_KURZ[t]); return; }
+      d.raum = quelle.raum;
+      d.ort = quelle.ort;
+    });
+    renderTage();
+    renderAbschluss();
+    meldung(belegt.length
+      ? "Übernommen. Belegt und daher ausgelassen: " + belegt.join(", ")
+      : "Raum für alle gewählten Tage übernommen.", belegt.length > 0);
+  });
+
+  /* Raumauswahl */
+  $("pickerSuche").addEventListener("input", (e) => { picker.suche = e.target.value; renderPicker(); });
+  $("cbNurFrei").addEventListener("change", (e) => { picker.nurFrei = e.target.checked; renderPicker(); });
+
+  /* Code */
+  $("btnCode").addEventListener("click", () => {
+    $("fCode").value = "";
+    $("codeFehler").hidden = true;
+    $("codeDialog").showModal();
+  });
+  $("btnCodeLaden").addEventListener("click", codeLaden);
+  $("fCode").addEventListener("keydown", (e) => { if (e.key === "Enter") codeLaden(); });
+  $("btnAbbrechen").addEventListener("click", zuruecksetzen);
+  $("btnLoeschen").addEventListener("click", projektLoeschen);
+
+  /* Erfolg */
+  $("btnFertig").addEventListener("click", () => { gespeichert = false; zuruecksetzen(); });
+
+  /* Dialoge: Schließen-Knöpfe und Klick auf den Hintergrund */
+  document.querySelectorAll("dialog").forEach((d) => {
+    d.addEventListener("click", (e) => { if (e.target === d) d.close(); });
+  });
+  document.querySelectorAll("[data-schliessen]").forEach((b) => {
+    b.addEventListener("click", () => b.closest("dialog").close());
+  });
+}
+
+/* =========================================================
+   9 · Start
+   ========================================================= */
+
+function startfehler(text) {
+  const box = $("startfehler");
+  box.innerHTML = "";
+  box.appendChild(el("h2", "abschnitt", "Die Projektplanung ist gerade nicht erreichbar"));
+  box.appendChild(el("p", "abschnitt-hinweis", text));
+  box.hidden = false;
+}
+
+async function start() {
+  form = leeresFormular();
+  bedienungEinrichten();
+
+  if (SUPABASE_KEY.startsWith("HIER_")) {
+    startfehler("Der Supabase-Schlüssel fehlt noch. Bitte in der Datei oben bei SUPABASE_KEY den anon-Key eintragen.");
+    return;
+  }
+  try {
+    await laden();
+  } catch (e) {
+    startfehler("Verbindung zur Datenbank fehlgeschlagen (" + e.message + "). Bitte später erneut versuchen.");
+    return;
+  }
+  formularFuellen();
+  renderAlles();
+}
+
+start();
+</script>
+</body>
+</html>

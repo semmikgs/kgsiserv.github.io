@@ -1,0 +1,3244 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Projektwoche · Admin</title>
+<meta name="description" content="Verwaltung der Projektwoche: Planung, Räume, Gruppen, Aushänge und Einstellungen.">
+<meta name="robots" content="noindex">
+
+<!-- =========================================================
+     PROJEKTWOCHE · ADMIN · KGS - Digital
+     Eigenständige Datei, kein CDN, kein Framework.
+     Alle Änderungen laufen über geschützte Datenbankfunktionen,
+     die das Admin-Passwort serverseitig prüfen.
+     ========================================================= -->
+
+<style id="seitenstil">@page { size: A4 portrait; margin: 12mm; }</style>
+<style>
+/* ---------- KGS-Basis ---------- */
+:root {
+  --bg:            #2a2c8e;
+  --karte:         #ffffff;
+  --tinte:         #1f2430;
+  --tinte-leise:   #6b7280;
+  --indigo:        #312e91;
+  --navy:          #1e2a78;
+  --navy-hover:    #16205c;
+  --linie:         #e3e6ee;
+  --chip:          #eef0f5;
+  --badge-bg:      #e6e8fb;
+  --radius-karte:  16px;
+  --radius-klein:  8px;
+  --schatten:      0 1px 3px rgba(15, 20, 60, .12);
+  --gruen:         #1b7a4b;
+  --orange:        #c2670c;
+  --rot:           #b3261e;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  padding: 20px 16px 56px;
+  background: var(--bg);
+  color: var(--tinte);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.huelle { max-width: 1280px; margin: 0 auto; }
+
+.karte {
+  background: var(--karte);
+  border-radius: var(--radius-karte);
+  padding: 26px 28px;
+  margin-bottom: 22px;
+  box-shadow: var(--schatten);
+}
+
+.kopf-titel {
+  display: flex; align-items: center; gap: 12px;
+  margin: 0; font-size: 30px; font-weight: 700;
+  color: var(--indigo); letter-spacing: -.01em;
+}
+.kopf-titel .symbol { font-size: 28px; line-height: 1; }
+.kopf-untertitel { margin: 6px 0 0; color: var(--tinte-leise); font-size: 15px; }
+
+.buttonreihe { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+
+.knopf {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 18px;
+  background: var(--navy); color: #fff;
+  border: 0; border-radius: var(--radius-klein);
+  font-family: inherit; font-size: 14.5px; font-weight: 600;
+  text-decoration: none; cursor: pointer;
+  transition: background .15s ease;
+}
+.knopf:hover { background: var(--navy-hover); }
+.knopf:focus-visible { outline: 2px solid var(--indigo); outline-offset: 2px; }
+.knopf:disabled { opacity: .55; cursor: not-allowed; }
+.knopf.zurueck { background: transparent; color: var(--navy); border: 1.5px solid var(--linie); }
+.knopf.zurueck:hover { background: var(--chip); }
+.knopf.gefahr { background: transparent; color: var(--rot); border: 1.5px solid #f1c9c6; }
+.knopf.gefahr:hover { background: #fdf0ef; }
+.knopf.mini { padding: 6px 12px; font-size: 13.5px; }
+
+.trenner { height: 1px; background: var(--linie); border: 0; margin: 22px 0; }
+
+.filterreihe { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 12px; }
+.filter {
+  padding: 8px 16px;
+  background: var(--chip); color: #4b5563;
+  border: 1.5px solid transparent; border-radius: 999px;
+  font-family: inherit; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: background .15s ease;
+}
+.filter:hover { background: #e2e6ee; }
+.filter[aria-pressed="true"] { background: #fff; color: var(--indigo); border-color: var(--indigo); }
+.filter:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+.filter.klein { padding: 3px 10px; font-size: 12.5px; }
+
+.fusszeile { margin-top: 10px; color: #b9bce0; font-size: 13.5px; text-align: center; }
+
+/* ---------- Formular ---------- */
+.abschnitt { margin: 0 0 4px; font-size: 19px; font-weight: 700; color: var(--indigo); }
+.abschnitt-hinweis { margin: 0 0 16px; font-size: 14px; color: var(--tinte-leise); }
+
+.feld {
+  width: 100%;
+  padding: 10px 12px;
+  font-family: inherit; font-size: 15px; color: var(--tinte);
+  background: #fff;
+  border: 1.5px solid var(--linie); border-radius: var(--radius-klein);
+}
+.feld:focus { outline: none; border-color: var(--navy); box-shadow: 0 0 0 3px rgba(30, 42, 120, .12); }
+textarea.feld { min-height: 140px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px; }
+
+.label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 700; color: var(--tinte-leise); }
+.feldgruppe { margin-top: 14px; }
+.zeile { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+.zeile > div { flex: 1 1 160px; min-width: 0; }
+.zeile > .schmal { flex: 0 1 120px; }
+
+.schalter { display: flex; align-items: flex-start; gap: 10px; font-size: 15px; cursor: pointer; }
+.schalter input { width: 20px; height: 20px; accent-color: var(--navy); margin: 2px 0 0; flex: none; }
+.schalter small { display: block; color: var(--tinte-leise); font-size: 13.5px; }
+
+.raster2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 22px; }
+.raster2 > .karte { margin: 0; }
+
+.hinweisbox { padding: 12px 14px; border-radius: var(--radius-klein); font-size: 14px; margin-top: 14px; }
+.hinweisbox.warnung { background: #fdf0ef; color: var(--rot); }
+.hinweisbox.info { background: var(--badge-bg); color: var(--indigo); }
+.hinweisbox ul { margin: 6px 0 0; padding-left: 20px; }
+
+/* ---------- Zähler ---------- */
+.zaehler { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.zkachel { background: var(--chip); border-radius: 12px; padding: 10px 14px; }
+.zkachel .k { font-size: 12.5px; font-weight: 700; color: var(--tinte-leise); }
+.zkachel .w { font-size: 22px; font-weight: 700; color: var(--indigo); line-height: 1.25; }
+.zkachel .w small { font-size: 14px; color: var(--tinte-leise); font-weight: 600; }
+.zkachel .balken { height: 6px; background: #dfe2ec; border-radius: 99px; margin: 6px 0 4px; overflow: hidden; }
+.zkachel .balken i { display: block; height: 100%; background: var(--orange); border-radius: 99px; }
+.zkachel.erreicht .balken i { background: var(--gruen); }
+.zkachel .r { font-size: 12.5px; color: var(--tinte-leise); }
+.zkachel.erreicht .r.ziel { color: var(--gruen); font-weight: 700; }
+.zkachel .rot { color: var(--rot); font-weight: 700; }
+.abwknopf {
+  margin-top: 6px; padding: 3px 9px; width: 100%;
+  background: #fff; border: 1.5px solid var(--linie); border-radius: 8px;
+  font-family: inherit; font-size: 12.5px; color: var(--navy); font-weight: 600; text-align: left; cursor: pointer;
+}
+.abwknopf:hover { border-color: var(--indigo); }
+
+/* ---------- Raumauswahl ---------- */
+dialog.breit { width: min(1000px, calc(100vw - 24px)); height: min(820px, calc(100vh - 24px)); }
+.suchzeile { display: flex; gap: 12px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+.suchzeile .feld { flex: 1 1 240px; }
+.raumabschnitt { margin: 0 0 22px; }
+.raumabschnitt h3 { margin: 0 0 10px; font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: var(--tinte-leise); }
+.raumgitter { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+.raum {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 12px 14px; min-height: 92px;
+  background: #fff; border: 1.5px solid var(--linie); border-radius: 12px;
+  font-family: inherit; text-align: left; cursor: pointer; color: var(--tinte);
+  transition: border-color .15s ease, transform .15s ease;
+}
+.raum:hover:not(:disabled) { border-color: var(--indigo); transform: translateY(-1px); }
+.raum:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+.raum.gewaehlt { border-color: var(--indigo); background: var(--badge-bg); }
+.raum:disabled { background: #f3f4f7; cursor: not-allowed; color: var(--tinte-leise); }
+.raum .rnr { font-size: 19px; font-weight: 700; color: var(--indigo); }
+.raum:disabled .rnr { color: #9aa1ae; }
+.raum .bes { font-size: 13px; color: var(--tinte-leise); min-height: 19px; }
+.raum .zust { margin-top: auto; font-size: 12.5px; font-weight: 600; display: flex; gap: 6px; align-items: baseline; }
+.raum .zust::before { content: ""; width: 8px; height: 8px; border-radius: 999px; flex: none; transform: translateY(-1px); }
+.zust.frei   { color: var(--gruen); }  .zust.frei::before   { background: var(--gruen); }
+.zust.teil   { color: var(--orange); } .zust.teil::before   { background: var(--orange); }
+.zust.belegt { color: #8a909c; }       .zust.belegt::before { background: #b3b8c2; }
+.raumwahl {
+  width: 100%; padding: 10px 14px;
+  background: var(--badge-bg); color: var(--indigo);
+  border: 1.5px solid transparent; border-radius: var(--radius-klein);
+  font-family: inherit; font-size: 15px; text-align: left; cursor: pointer;
+}
+.raumwahl:hover { border-color: var(--indigo); }
+.raumwahl.leer { background: #fff; color: var(--navy); border: 1.5px dashed #b7bdd6; font-weight: 600; }
+.leer-hinweis { color: var(--tinte-leise); text-align: center; padding: 40px 0; }
+
+/* ---------- Kennzahlen ---------- */
+.zahlen { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.zahl { background: var(--chip); border-radius: 12px; padding: 12px 16px; }
+.zahl b { display: block; font-size: 26px; color: var(--indigo); line-height: 1.2; }
+.zahl span { font-size: 13px; color: var(--tinte-leise); }
+.zahl.rot b { color: var(--rot); }
+
+/* ---------- Tabellen ---------- */
+.tabellenhuelle { overflow-x: auto; border: 1.5px solid var(--linie); border-radius: 12px; }
+.tabelle { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tabelle th {
+  position: sticky; top: 0;
+  background: #f6f7fb; text-align: left; padding: 10px 12px;
+  font-size: 12.5px; font-weight: 700; color: var(--tinte-leise);
+  border-bottom: 1.5px solid var(--linie); white-space: nowrap;
+}
+.tabelle td { padding: 9px 12px; border-bottom: 1px solid var(--linie); vertical-align: top; }
+.tabelle tr:last-child td { border-bottom: 0; }
+.tabelle tr.klickbar { cursor: pointer; }
+.tabelle tr.klickbar:hover td { background: #f8f9fd; }
+.tabelle .nr { font-weight: 700; color: var(--indigo); white-space: nowrap; }
+.tabelle .leise { color: var(--tinte-leise); font-size: 13px; }
+.tabelle .feld { padding: 6px 8px; font-size: 14px; }
+.tabelle tr.versteckt td { background: #fafafa; color: var(--tinte-leise); }
+
+/* Wochenraster */
+.wochenraster td { min-width: 150px; }
+.wochenraster td:first-child { min-width: 120px; background: #fbfbfe; }
+.buchungschip {
+  display: block; width: 100%; margin-bottom: 6px; padding: 6px 9px;
+  background: var(--badge-bg); color: var(--tinte);
+  border: 1.5px solid transparent; border-radius: 8px;
+  font-family: inherit; font-size: 13px; text-align: left; cursor: pointer; line-height: 1.35;
+}
+.buchungschip:last-child { margin-bottom: 0; }
+.buchungschip:hover { border-color: var(--indigo); }
+.buchungschip b { color: var(--indigo); }
+.buchungschip small { display: block; color: var(--tinte-leise); }
+.buchungschip.krank { background: #fdf0ef; border-color: #f1c9c6; }
+.buchungschip.krank b { color: var(--rot); }
+.tagkurz { display: inline-block; min-width: 40px; }
+.krankmarke { color: var(--rot); font-weight: 700; }
+.krankicon { width: 16px; height: 16px; vertical-align: -3px; flex: none; }
+.krankknopf .krankicon { width: 18px; height: 18px; }
+.aktualisieren {
+  width: 36px; height: 36px; margin-left: 4px;
+  background: #fff; border: 1.5px solid var(--linie); border-radius: 999px;
+  font-size: 19px; line-height: 1; color: var(--navy); cursor: pointer;
+}
+.aktualisieren:hover { border-color: var(--indigo); background: var(--chip); }
+.aktualisieren.dreht { animation: drehen .8s linear infinite; }
+@keyframes drehen { to { transform: rotate(360deg); } }
+.chipkopf { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.chipkopf .punkt { margin-top: 3px; }
+.modusliste { display: grid; gap: 8px; }
+.modus {
+  display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; text-align: left;
+  padding: 12px 14px; background: #fff; border: 1.5px solid var(--linie); border-radius: 12px;
+  font-family: inherit; color: var(--tinte); cursor: pointer;
+}
+.modus:hover { border-color: var(--indigo); }
+.modus.an { border-color: var(--indigo); background: var(--badge-bg); box-shadow: inset 4px 0 0 var(--indigo); }
+.modus b { font-size: 15px; }
+.modus span { grid-column: 1; font-size: 13.5px; color: var(--tinte-leise); }
+.modus em { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-style: normal; font-size: 12px; font-weight: 700;
+  color: var(--gruen); background: #e3f3ea; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
+.punkt { display: inline-block; width: 11px; height: 11px; border-radius: 999px; vertical-align: -1px; flex: none; }
+.punkt.rot { background: #d93025; box-shadow: 0 0 0 2px #fbd5d1; }
+.punkt.gruen { background: #1e8e3e; box-shadow: 0 0 0 2px #cfeedd; }
+.knopf.krankaktiv { background: #fdf0ef; border-color: #f1c9c6; }
+
+/* ---------- Dialoge ---------- */
+dialog {
+  border: 0; padding: 0;
+  border-radius: var(--radius-karte);
+  box-shadow: 0 20px 60px rgba(15, 20, 60, .35);
+  color: var(--tinte);
+  width: min(680px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+}
+dialog[open] { display: flex; flex-direction: column; }
+dialog::backdrop { background: rgba(15, 20, 60, .55); }
+.fenster-kopf { padding: 20px 24px 14px; border-bottom: 1px solid var(--linie); }
+.fenster-kopf h2 { margin: 0; font-size: 20px; color: var(--indigo); display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.fenster-inhalt { padding: 18px 24px; overflow: auto; flex: 1; }
+.fenster-fuss { padding: 14px 24px 20px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; border-top: 1px solid var(--linie); }
+.fenster-fuss .links { margin-right: auto; display: flex; gap: 10px; flex-wrap: wrap; }
+.schliessen {
+  width: 36px; height: 36px; flex: none;
+  background: var(--chip); border: 0; border-radius: 999px;
+  font-size: 20px; line-height: 1; cursor: pointer; color: #4b5563;
+}
+.schliessen:hover { background: #e2e6ee; }
+
+.buchungsliste { list-style: none; margin: 0; padding: 0; }
+.buchungsliste li {
+  display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center;
+  padding: 10px 0; border-bottom: 1px solid var(--linie); font-size: 14.5px;
+}
+.buchungsliste li:last-child { border-bottom: 0; }
+.buchungsliste .text { flex: 1 1 240px; }
+.buchungsliste .t { font-weight: 700; color: var(--indigo); margin-right: 6px; }
+
+.codeanzeige {
+  margin: 12px 0 0; padding: 14px;
+  background: var(--badge-bg); color: var(--indigo); border-radius: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 30px; font-weight: 700; letter-spacing: .25em; text-align: center;
+}
+
+/* ---------- Vorschau ---------- */
+.vorschau {
+  border: 1.5px solid var(--linie); border-radius: 12px;
+  padding: 24px; background: #fff; overflow: auto; max-height: 75vh;
+}
+
+/* ---------- Druckinhalt (gilt für Vorschau und Druck) ---------- */
+.d-seite { color: #000; font-size: 12.5px; }
+.d-seite + .d-seite { margin-top: 40px; padding-top: 30px; border-top: 2px dashed var(--linie); }
+.d-seite h1 { font-size: 22px; margin: 0 0 2px; color: var(--indigo); }
+.d-unter { margin: 0 0 14px; color: #555; font-size: 12px; }
+.d-tabelle { width: 100%; border-collapse: collapse; }
+.d-tabelle th, .d-tabelle td { border: 1px solid #b9bdc9; padding: 5px 7px; text-align: left; vertical-align: top; }
+.d-tabelle th { background: #eceef6; font-size: 11.5px; }
+.d-tabelle td small { display: block; color: #555; }
+.d-tabelle .thema { font-weight: 700; }
+.d-tabelle .beschr { font-weight: 400; font-size: 9.5px; line-height: 1.25; color: #333; }
+.d-tabelle.d-liste { font-size: 11px; border: 1.5px solid #8f95ab; }
+.d-tabelle.d-liste th, .d-tabelle.d-liste td { padding: 4px 6px; line-height: 1.3; border-color: #c9cddb; }
+.d-tabelle.d-liste th { background: #e4e6f4; color: #1e2a78; font-size: 10.5px; white-space: nowrap; border-bottom: 1.5px solid #8f95ab; }
+.d-tabelle.d-liste tbody tr:nth-child(even) td { background: #f7f8fc; }
+.d-tabelle.d-liste td small { font-size: 9.5px; }
+.d-tabelle.d-liste .eng { white-space: nowrap; }
+.d-tabelle.d-liste .thema { font-size: 11.5px; }
+.d-tabelle.d-liste .ort b { display: block; white-space: nowrap; }
+.d-tabelle.d-liste .ort small { white-space: nowrap; }
+.d-tabelle.d-liste .ort + .ort { margin-top: 4px; }
+.d-tabelle.d-liste .vertr { display: block; white-space: nowrap; color: var(--rot); font-weight: 700; font-size: 9.5px; }
+.d-krank { color: var(--rot); font-weight: 700; }
+.d-schild { text-align: center; padding: 10px 0 18px; }
+.d-schild .raumnr { font-size: 80px; font-weight: 800; color: var(--indigo); line-height: 1; letter-spacing: -.02em; }
+.d-schild .raumbes { font-size: 22px; margin-top: 6px; }
+.d-schild .woche { font-size: 14px; color: #555; margin-top: 10px; }
+.d-schild-tabelle td { font-size: 14px; padding: 9px 10px; }
+.d-schild-tabelle .tagzelle { width: 110px; font-weight: 700; }
+.d-leer { color: #888; }
+.d-zwischen { font-size: 16px; margin: 22px 0 8px; color: var(--indigo); break-after: avoid; }
+.d-leertabelle td { line-height: 1.55; }
+.d-leertabelle .tagzelle { width: 120px; }
+.d-leertabelle .tagzelle small { display: block; }
+
+#druck { display: none; }
+
+/* ---------- Login ---------- */
+.login { max-width: 420px; margin: 8vh auto 0; }
+
+/* ---------- Meldung ---------- */
+.meldung {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+  max-width: calc(100vw - 32px);
+  padding: 12px 20px; border-radius: 12px;
+  background: var(--tinte); color: #fff; font-size: 15px; font-weight: 600;
+  box-shadow: 0 10px 30px rgba(15, 20, 60, .35);
+  z-index: 50;
+}
+.meldung.fehler { background: var(--rot); }
+
+/* ---------- Mobil ---------- */
+@media (max-width: 640px) {
+  body { padding: 14px 12px 40px; }
+  .karte { padding: 20px 18px; }
+  .kopf-titel { font-size: 23px; }
+  .raster2 { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* ---------- Druck ---------- */
+@media print {
+  body { background: #fff; padding: 0; }
+  .huelle, dialog, .meldung { display: none !important; }
+  #druck { display: block; }
+  .d-seite { break-after: page; }
+  .d-seite:last-child { break-after: auto; }
+  .d-seite + .d-seite { margin-top: 0; padding-top: 0; border-top: 0; }
+  .d-tabelle tr { break-inside: avoid; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+</head>
+
+<body>
+<div class="huelle">
+
+  <!-- Login -->
+  <div class="karte login" id="loginKarte" hidden>
+    <h1 class="kopf-titel"><span class="symbol">🔐</span> Admin</h1>
+    <p class="kopf-untertitel">Projektwoche · Verwaltung</p>
+    <hr class="trenner">
+    <div class="feldgruppe" style="margin-top:0">
+      <label class="label" for="lName">Benutzer</label>
+      <input class="feld" id="lName" type="text" autocomplete="username" value="admin">
+    </div>
+    <div class="feldgruppe">
+      <label class="label" for="lPw">Passwort</label>
+      <input class="feld" id="lPw" type="password" autocomplete="current-password">
+    </div>
+    <p class="hinweisbox warnung" id="loginFehler" hidden></p>
+    <div class="buttonreihe">
+      <button class="knopf" id="btnLogin" type="button">Anmelden</button>
+      <a class="knopf zurueck" href="index.html">Zur Buchungsseite</a>
+    </div>
+  </div>
+
+  <div class="karte" id="startfehler" hidden></div>
+
+  <!-- Anwendung -->
+  <div id="app" hidden>
+    <div class="karte">
+      <h1 class="kopf-titel"><span class="symbol">🗓️</span> Projektwoche · Admin</h1>
+      <p class="kopf-untertitel" id="untertitel"></p>
+      <div class="buttonreihe">
+        <a class="knopf zurueck" href="index.html">Zur Buchungsseite</a>
+        <button class="knopf zurueck" id="btnNeuLaden" type="button">Neu laden</button>
+        <button class="knopf zurueck" id="btnAbmelden" type="button">Abmelden</button>
+      </div>
+      <div class="filterreihe" id="reiter" role="tablist" style="margin-top:20px"></div>
+    </div>
+
+    <div id="inhalt"></div>
+  </div>
+
+  <p class="fusszeile">KGS Schwarmstedt · Projektwoche</p>
+</div>
+
+<!-- Projekt -->
+<dialog id="projektDialog" aria-labelledby="pdTitel">
+  <div class="fenster-kopf">
+    <h2><span id="pdTitel">Projekt</span>
+      <button class="schliessen" type="button" data-schliessen aria-label="Schließen">×</button></h2>
+  </div>
+  <div class="fenster-inhalt" id="pdInhalt"></div>
+  <div class="fenster-fuss">
+    <div class="links">
+      <button class="knopf gefahr" id="pdLoeschen" type="button">Projekt löschen</button>
+      <button class="knopf zurueck" id="pdCode" type="button">Neuer Änderungscode</button>
+    </div>
+    <button class="knopf" id="pdSpeichern" type="button">Änderungen speichern</button>
+  </div>
+</dialog>
+
+<!-- Raumauswahl -->
+<dialog class="breit" id="raumDialog" aria-labelledby="rdTitel">
+  <div class="fenster-kopf">
+    <h2><span id="rdTitel">Raum wählen</span>
+      <button class="schliessen" type="button" data-schliessen aria-label="Schließen">×</button></h2>
+    <p class="hinweisbox info" id="rdInfo" hidden style="margin:12px 0 0"></p>
+    <div class="suchzeile">
+      <input class="feld" id="rdSuche" type="search" placeholder="Raumnummer oder Beschreibung suchen …">
+      <label class="schalter" style="align-items:center"><input type="checkbox" id="rdNurFrei"> Nur freie Räume</label>
+    </div>
+    <div class="filterreihe" id="rdFilter"></div>
+  </div>
+  <div class="fenster-inhalt" id="rdInhalt"></div>
+</dialog>
+
+<!-- Abwesende -->
+<dialog id="abwDialog" aria-labelledby="abwTitel" style="width:min(860px, calc(100vw - 24px))">
+  <div class="fenster-kopf">
+    <h2><span id="abwTitel">Abwesende Kollegen</span>
+      <button class="schliessen" type="button" data-schliessen aria-label="Schließen">×</button></h2>
+  </div>
+  <div class="fenster-inhalt">
+    <label class="label" for="abwAnzahl">Anzahl abwesender Kollegen</label>
+    <input class="feld" id="abwAnzahl" type="number" min="0" max="200" step="1" style="max-width:160px">
+    <div class="feldgruppe">
+      <label class="label" for="abwNotiz">Wer? (optional, nur im Admin sichtbar)</label>
+      <textarea class="feld" id="abwNotiz" style="min-height:70px;font-family:inherit" placeholder="z. B. Kürzel, Grund"></textarea>
+    </div>
+    <hr class="trenner">
+    <h3 class="abschnitt" id="abwListeTitel">Eingesetzte Kollegen</h3>
+    <p class="abschnitt-hinweis">Rotes Kreuz anklicken = krank melden. Vertretung eintragen und mit Enter oder Klick daneben speichern.</p>
+    <input class="feld" id="abwSuche" type="search" placeholder="Kürzel, Name, Thema oder Raum suchen …" style="margin-bottom:10px">
+    <div class="tabellenhuelle"><table class="tabelle" id="abwListe"></table></div>
+  </div>
+  <div class="fenster-fuss">
+    <button class="knopf zurueck" type="button" data-schliessen>Schließen</button>
+    <button class="knopf" id="abwSpeichern" type="button">Anzahl speichern</button>
+  </div>
+</dialog>
+
+<!-- Lehrkraft -->
+<dialog id="lehrerDialog" aria-labelledby="ldlTitel">
+  <div class="fenster-kopf">
+    <h2><span id="ldlTitel">Lehrkraft</span>
+      <button class="schliessen" type="button" data-schliessen aria-label="Schließen">×</button></h2>
+  </div>
+  <div class="fenster-inhalt">
+    <div class="zeile">
+      <div><label class="label" for="ldlNach">Nachname</label><input class="feld" id="ldlNach" type="text" maxlength="60"></div>
+      <div><label class="label" for="ldlVor">Vorname</label><input class="feld" id="ldlVor" type="text" maxlength="60"></div>
+    </div>
+    <div class="zeile feldgruppe">
+      <div class="schmal"><label class="label" for="ldlK">Kürzel</label><input class="feld" id="ldlK" type="text" maxlength="10"></div>
+      <div><label class="label" for="ldlStd">Stundenverpflichtung (leer = volle Stelle)</label><input class="feld" id="ldlStd" type="text" inputmode="decimal" maxlength="6"></div>
+    </div>
+    <hr class="trenner">
+    <h3 class="abschnitt">Einsatz in der Projektwoche</h3>
+    <ul class="buchungsliste" id="ldlEinsatz"></ul>
+  </div>
+  <div class="fenster-fuss">
+    <div class="links"><button class="knopf gefahr" id="ldlLoeschen" type="button">Löschen</button></div>
+    <button class="knopf zurueck" type="button" data-schliessen>Abbrechen</button>
+    <button class="knopf" id="ldlSpeichern" type="button">Speichern</button>
+  </div>
+</dialog>
+<datalist id="dlVertretung"></datalist>
+
+<!-- Löschen -->
+<dialog id="loeschDialog" aria-labelledby="ldTitel">
+  <div class="fenster-kopf">
+    <h2><span id="ldTitel">Löschen</span>
+      <button class="schliessen" type="button" data-schliessen aria-label="Schließen">×</button></h2>
+  </div>
+  <div class="fenster-inhalt">
+    <p class="hinweisbox warnung" id="ldText" style="margin-top:0"></p>
+    <label class="schalter" id="ldAbwZeile" style="margin:14px 0 4px">
+      <input type="checkbox" id="ldAbw" checked>
+      <span>Auch die eingetragenen Abwesenden zurücksetzen</span>
+    </label>
+    <div class="feldgruppe">
+      <label class="label" for="ldPw">Zur Bestätigung Admin-Passwort eingeben</label>
+      <input class="feld" id="ldPw" type="password" autocomplete="current-password">
+    </div>
+  </div>
+  <div class="fenster-fuss">
+    <button class="knopf zurueck" type="button" data-schliessen>Abbrechen</button>
+    <button class="knopf" id="ldOk" type="button" style="background:var(--rot)">Endgültig löschen</button>
+  </div>
+</dialog>
+
+<!-- Krankmeldung -->
+<dialog id="krankDialog" aria-labelledby="kdTitel">
+  <div class="fenster-kopf">
+    <h2><span id="kdTitel">Krankmeldung</span>
+      <button class="schliessen" type="button" data-schliessen aria-label="Schließen">×</button></h2>
+  </div>
+  <div class="fenster-inhalt">
+    <p id="kdText" style="margin-top:0"></p>
+    <label class="label" for="kdVertretung">Vertretung (Kürzel oder Name)</label>
+    <input class="feld" id="kdVertretung" type="text" maxlength="60" placeholder="kann auch später eingetragen werden">
+  </div>
+  <div class="fenster-fuss">
+    <div class="links"><button class="knopf gefahr" id="kdAufheben" type="button">Krankmeldung aufheben</button></div>
+    <button class="knopf zurueck" type="button" data-schliessen>Abbrechen</button>
+    <button class="knopf" id="kdSpeichern" type="button">Krank melden</button>
+  </div>
+</dialog>
+
+<!-- Buchung -->
+<dialog id="buchungDialog" aria-labelledby="bdTitel">
+  <div class="fenster-kopf">
+    <h2><span id="bdTitel">Buchung</span>
+      <button class="schliessen" type="button" data-schliessen aria-label="Schließen">×</button></h2>
+  </div>
+  <div class="fenster-inhalt" id="bdInhalt"></div>
+  <div class="fenster-fuss">
+    <button class="knopf zurueck" type="button" data-schliessen>Abbrechen</button>
+    <button class="knopf" id="bdSpeichern" type="button">Speichern</button>
+  </div>
+</dialog>
+
+<div id="druck"></div>
+<div class="meldung" id="meldung" role="status" hidden></div>
+
+<script>
+/* =========================================================
+   0 · Verbindung
+   ========================================================= */
+
+const SUPABASE_URL = "https://xzhxqbyobdlyqkyyjcxc.supabase.co";
+const SUPABASE_KEY = "sb_publishable_TlasNLd2Yxq8nxrkgHMnlA_J5-IezYg";
+
+/* =========================================================
+   1 · Zustand
+   ========================================================= */
+
+/* Kranksymbol: rotes Kreuz im roten Kreis */
+const KRANK_SVG = '<svg class="krankicon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.5" fill="none" stroke="#c62828" stroke-width="2"/><path d="M10 5.5v9M5.5 10h9" stroke="#c62828" stroke-width="2.6" stroke-linecap="round"/></svg>';
+
+const TAGE = ["", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag"];
+const TAGE_KURZ = ["", "Mo", "Di", "Mi", "Do", "Fr"];
+const REITER = [
+  ["planung", "Planung"], ["lehrer", "Lehrkräfte"], ["raeume", "Räume"], ["gruppen", "Gruppen"],
+  ["export", "Aushänge"], ["einstellungen", "Einstellungen"]
+];
+
+const daten = { raeume: [], gruppen: [], raumGruppen: [], projekte: [], buchungen: [], status: {}, abwesend: [],
+  lehrer: [], lehrerSoll: { voll_stunden: 25.5, pw_stunden: 25 }, lehrerFehlt: false };
+const rw = { gebaeude: "alle", gruppe: null, suche: "", nurFrei: false };   // Raumauswahl-Filter
+let abwTag = 1;
+let PW = "";
+let reiter = "planung";
+const ansicht = {
+  plan: { modus: "raster", suche: "", alleRaeume: false, tag: null, belegFilter: "alle" },
+  raeume: { suche: "", versteckte: true, zuordnung: null },
+  export: { art: "liste", klasse: "alle", kosten: "alle", gruppe: "", trakt: "", tag: 0, suche: "", sort: "thema", leerAnhang: true, beschr: true }
+};
+let offenesProjekt = null;
+let bd = null;                  // Zustand des Buchungsdialogs
+let importHinweis = "";
+
+const $ = (id) => document.getElementById(id);
+
+function el(tag, klasse, text) {
+  const e = document.createElement(tag);
+  if (klasse) e.className = klasse;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function speicher(aktion, wert) {
+  try {
+    if (aktion === "lesen") return sessionStorage.getItem("pw_admin") || "";
+    if (aktion === "setzen") sessionStorage.setItem("pw_admin", wert);
+    if (aktion === "loeschen") sessionStorage.removeItem("pw_admin");
+  } catch (e) { /* privater Modus: dann eben neu anmelden */ }
+  return "";
+}
+
+/* =========================================================
+   2 · Datenbank
+   ========================================================= */
+
+function kopfzeilen() {
+  const kopf = { apikey: SUPABASE_KEY, "Content-Type": "application/json" };
+  if (SUPABASE_KEY.startsWith("eyJ")) kopf.Authorization = "Bearer " + SUPABASE_KEY;
+  return kopf;
+}
+
+async function fehlertext(antwort) {
+  try {
+    const j = await antwort.json();
+    return j.message || j.error || "Fehler " + antwort.status;
+  } catch (e) {
+    return "Fehler " + antwort.status;
+  }
+}
+
+async function lesen(pfad) {
+  const r = await fetch(SUPABASE_URL + "/rest/v1/" + pfad, { headers: kopfzeilen() });
+  if (!r.ok) throw new Error(await fehlertext(r));
+  return r.json();
+}
+
+async function rpc(funktion, parameter) {
+  const r = await fetch(SUPABASE_URL + "/rest/v1/rpc/" + funktion, {
+    method: "POST", headers: kopfzeilen(), body: JSON.stringify(parameter || {})
+  });
+  if (!r.ok) throw new Error(await fehlertext(r));
+  const text = await r.text();
+  return text ? JSON.parse(text) : null;
+}
+
+async function admin(funktion, parameter) {
+  try {
+    return await rpc(funktion, Object.assign({ p_pw: PW }, parameter || {}));
+  } catch (e) {
+    if (/Kein Admin-Zugriff/.test(e.message)) { abmelden(); throw new Error("Sitzung abgelaufen – bitte neu anmelden."); }
+    throw e;
+  }
+}
+
+async function laden() {
+  const [raeume, gruppen, raumGruppen, projekte, buchungen, status, abwesend, lehrerDaten] = await Promise.all([
+    lesen("pw_rooms?select=*&order=nummer"),
+    lesen("pw_groups?select=*&order=name"),
+    lesen("pw_room_groups?select=*"),
+    lesen("pw_projects?select=*&order=thema"),
+    lesen("pw_bookings?select=*&order=tag,std_von"),
+    rpc("pw_get_status"),
+    PW ? rpc("pw_admin_get_abwesend", { p_pw: PW }).catch(() => []) : Promise.resolve([]),
+    PW ? rpc("pw_admin_get_lehrer", { p_pw: PW }).catch(() => null) : Promise.resolve(null)
+  ]);
+  Object.assign(daten, { raeume, gruppen, raumGruppen, projekte, buchungen, status: status || {}, abwesend: abwesend || [],
+    lehrer: (lehrerDaten && lehrerDaten.lehrer) || [], lehrerFehlt: !!PW && !lehrerDaten,
+    lehrerSoll: { voll_stunden: lehrerDaten ? lehrerDaten.voll_stunden : 25.5, pw_stunden: lehrerDaten ? lehrerDaten.pw_stunden : 25 } });
+}
+
+/* Admin-Aktion: ausführen, neu laden, alles neu zeichnen */
+async function aktion(funktion, parameter, erfolgstext) {
+  try {
+    const ergebnis = await admin(funktion, parameter);
+    await laden();
+    renderAlles();
+    if (erfolgstext) meldung(erfolgstext);
+    return ergebnis === null ? true : ergebnis;
+  } catch (e) {
+    meldung(e.message, true);
+    return undefined;
+  }
+}
+
+/* =========================================================
+   3 · Hilfen
+   ========================================================= */
+
+const raumInfo = (nr) => daten.raeume.find((r) => r.nummer === nr);
+const istExkursion = (nr) => !!(raumInfo(nr) || {}).ist_exkursion;
+const projektVon = (id) => daten.projekte.find((p) => p.id === id);
+const buchungenVon = (pid) => daten.buchungen.filter((b) => b.project_id === pid).sort((a, b) => a.tag - b.tag || a.std_von - b.std_von);
+const gruppenVon = (nr) => daten.raumGruppen.filter((x) => x.room === nr).map((x) => x.group_id);
+
+function stundenText(von, bis) {
+  return von <= 2 && bis === 6 ? "ganztägig" : von === bis ? von + ". Std." : von + ".–" + bis + ". Std.";
+}
+
+function klassenText(p) {
+  if (p.klasse_von === p.klasse_bis) return "Kl. " + p.klasse_von;
+  return "Kl. " + p.klasse_von + "–" + p.klasse_bis;
+}
+
+function kostenZahl(text) {
+  const t = String(text ?? "").trim().replace(",", ".");
+  if (!t) return 0;
+  const n = Number(t);
+  return isNaN(n) ? NaN : Math.round(n * 100) / 100;
+}
+
+function euro(n) {
+  return Number(n).toLocaleString("de-DE", { style: "currency", currency: "EUR" });
+}
+
+function kostenKurz(p) {
+  const n = Number(p.kosten) || 0;
+  return n ? euro(n) + (p.kosten_info ? " (" + p.kosten_info + ")" : "") : "kostenlos";
+}
+
+function kostenHtml(p) {
+  const n = Number(p.kosten) || 0;
+  return n ? esc(euro(n)) + (p.kosten_info ? "<small>" + esc(p.kosten_info) + "</small>" : "") : "kostenlos";
+}
+
+function projektHtml(p) {
+  const mit = ansicht.export.beschr && p.beschreibung;
+  return '<span class="thema">' + esc(p.thema) + "</span>" + (mit ? ' <span class="beschr">– ' + esc(p.beschreibung) + "</span>" : "");
+}
+
+/* Raum in einer Zeile: „3117 · NW1“ */
+function ortKurzHtml(b) {
+  const r = raumInfo(b.room);
+  if (istExkursion(b.room)) return "<b>Exkursion</b>" + (b.ort ? "<small>" + esc(b.ort) + "</small>" : "");
+  return "<b>" + esc(b.room) + "</b>" + (r && r.beschreibung ? "<small>" + esc(r.beschreibung) + "</small>" : "");
+}
+
+/* kurze Vertretungsangabe für die Listen */
+function vertrKurz(b) {
+  if (!b.krank) return "";
+  return '<span class="vertr">' + (b.vertretung ? "Vertr.: " + esc(b.vertretung) : "erkrankt") + "</span>";
+}
+
+function stdKurz(b) {
+  return b.std_von <= 2 && b.std_bis === 6 ? "2.–6." : b.std_von === b.std_bis ? b.std_von + "." : b.std_von + ".–" + b.std_bis + ".";
+}
+
+function kostenPasst(p) {
+  const k = ansicht.export.kosten, n = Number(p.kosten) || 0;
+  return k === "alle" || (k === "frei" && !n) || (k === "mit" && n > 0);
+}
+
+function lehrkraefte(p) {
+  return p.kuerzel + (p.mitwirkende ? ", " + p.mitwirkende : "");
+}
+
+function ortText(b, mitBeschreibung) {
+  if (istExkursion(b.room)) return "Exkursion" + (b.ort ? ": " + b.ort : "");
+  const r = raumInfo(b.room);
+  return b.room + (mitBeschreibung && r && r.beschreibung ? " · " + r.beschreibung : "");
+}
+
+function datum(tag, mitJahr) {
+  const s = daten.status.woche_start;
+  if (!s) return "";
+  const d = new Date(s + "T12:00:00");
+  d.setDate(d.getDate() + tag - 1);
+  return d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: mitJahr ? "numeric" : undefined });
+}
+
+function wochenText() {
+  return daten.status.woche_start ? datum(1) + " bis " + datum(5, true) : "Datum noch nicht festgelegt";
+}
+
+function konflikt(raum, tag, von, bis, ohneId) {
+  if (!raum || istExkursion(raum)) return null;
+  return daten.buchungen.find((b) => b.room === raum && b.tag === tag && b.id !== ohneId &&
+    b.std_von <= bis && b.std_bis >= von) || null;
+}
+
+function etageText(e) {
+  if (e === 1) return "Erdgeschoss";
+  if (e === 0) return "Untergeschoss";
+  return (e - 1) + ". Obergeschoss";
+}
+
+function vergleichRaum(a, b) {
+  if (a.ist_exkursion !== b.ist_exkursion) return a.ist_exkursion ? 1 : -1;
+  return a.nummer.localeCompare(b.nummer, "de", { numeric: true });
+}
+
+let meldungsUhr;
+function meldung(text, fehler) {
+  const m = $("meldung");
+  m.textContent = text;
+  m.className = "meldung" + (fehler ? " fehler" : "");
+  m.hidden = false;
+  clearTimeout(meldungsUhr);
+  meldungsUhr = setTimeout(() => { m.hidden = true; }, fehler ? 6000 : 3500);
+}
+
+function knopf(text, klasse, klick) {
+  const b = el("button", "knopf " + (klasse || ""), text);
+  b.type = "button";
+  if (klick) b.onclick = klick;
+  return b;
+}
+
+function karte(titel, hinweis) {
+  const k = el("section", "karte");
+  if (titel) k.appendChild(el("h2", "abschnitt", titel));
+  if (hinweis) k.appendChild(el("p", "abschnitt-hinweis", hinweis));
+  return k;
+}
+
+function feldMitLabel(label, element) {
+  const g = el("div");
+  const l = el("label", "label", label);
+  if (!element.id) element.id = "f" + Math.random().toString(36).slice(2, 8);
+  l.htmlFor = element.id;
+  g.append(l, element);
+  return g;
+}
+
+function input(wert, platzhalter, typ) {
+  const i = el("input", typ === "checkbox" || typ === "file" ? "" : "feld");
+  i.type = typ || "text";
+  if (wert !== undefined && wert !== null) i.value = wert;
+  if (platzhalter) i.placeholder = platzhalter;
+  return i;
+}
+
+function auswahl(optionen, wert) {
+  const s = el("select", "feld");
+  optionen.forEach(([w, t]) => {
+    const o = el("option", "", t);
+    o.value = w;
+    if (String(w) === String(wert)) o.selected = true;
+    s.appendChild(o);
+  });
+  return s;
+}
+
+/* =========================================================
+   4 · Rahmen
+   ========================================================= */
+
+function renderAlles() {
+  const st = daten.status;
+  $("untertitel").textContent = "Projektwoche " + wochenText() + " · Buchungsseite zeigt: " +
+    (st.woche_laeuft ? "Projektwoche läuft" : st.buchung_offen !== false ? "Planung offen" : st.plan_sichtbar ? "Projektplan" : "Infoseite") +
+    " · Änderungscodes " + (st.aenderung_offen === false ? "aus" : "an");
+
+  const leiste = $("reiter");
+  leiste.innerHTML = "";
+  REITER.forEach(([id, name]) => {
+    const b = el("button", "filter", name);
+    b.type = "button";
+    b.setAttribute("role", "tab");
+    b.setAttribute("aria-pressed", String(reiter === id));
+    b.onclick = () => { reiter = id; renderAlles(); };
+    leiste.appendChild(b);
+  });
+
+  const inhalt = $("inhalt");
+  inhalt.innerHTML = "";
+  ({ planung: renderPlanung, lehrer: renderLehrer, raeume: renderRaeume, gruppen: renderGruppen,
+     export: renderExport, einstellungen: renderEinstellungen })[reiter](inhalt);
+
+  if (offenesProjekt !== null && $("projektDialog").open) renderProjektDialog();
+}
+
+/* =========================================================
+   5 · Planung
+   ========================================================= */
+
+function renderPlanung(ziel) {
+  const v = ansicht.plan;
+  const k = karte();
+
+  /* Zähler: gesamt und je Tag */
+  k.appendChild(zaehlerAdmin());
+
+  /* Steuerung */
+  const steuer = el("div", "zeile");
+  const modi = el("div", "filterreihe");
+  modi.style.margin = "0";
+  modi.style.flex = "0 0 auto";
+  [["raster", "Wochenraster"], ["projekte", "Projektliste"], ["belegung", "Belegung"]].forEach(([m, t]) => {
+    const b = el("button", "filter", t);
+    b.type = "button";
+    b.setAttribute("aria-pressed", String(v.modus === m));
+    b.onclick = () => { v.modus = m; renderAlles(); };
+    modi.appendChild(b);
+  });
+  const suche = input(v.suche, "Suche: Thema, Kürzel, Raum …", "search");
+  suche.oninput = () => { v.suche = suche.value; zeichneListe(); };
+  const sucheBox = el("div");
+  sucheBox.appendChild(suche);
+  steuer.append(modi, sucheBox);
+
+  if (v.modus === "raster") {
+    const sch = el("label", "schalter");
+    sch.style.flex = "0 0 auto";
+    sch.style.alignItems = "center";
+    const cb = input(null, null, "checkbox");
+    cb.checked = v.alleRaeume;
+    cb.onchange = () => { v.alleRaeume = cb.checked; zeichneListe(); };
+    sch.append(cb, document.createTextNode("Auch freie Räume zeigen"));
+    steuer.appendChild(sch);
+  }
+  k.appendChild(steuer);
+
+  const liste = el("div", "tabellenhuelle");
+  liste.style.marginTop = "16px";
+  k.appendChild(liste);
+  ziel.appendChild(k);
+
+  function zeichneListe() {
+    liste.innerHTML = "";
+    liste.appendChild(v.modus === "raster" ? wochenraster() : v.modus === "belegung" ? belegungsliste() : projektliste());
+  }
+  zeichneListe();
+}
+
+function zaehlerAdmin() {
+  const box = el("div", "zaehler");
+  const ziele = daten.status.tagesziele || [];
+  const raeume = new Set(daten.buchungen.filter((b) => !istExkursion(b.room)).map((b) => b.room)).size;
+  const g = el("div", "zkachel");
+  g.innerHTML = '<div class="k">Projekte gesamt</div><div class="w">' + daten.projekte.length + "</div>" +
+    '<div class="r">' + daten.buchungen.length + " Tagesbuchungen · " + raeume + " Räume</div>";
+  box.appendChild(g);
+  for (let t = 1; t <= 5; t++) {
+    const n = new Set(daten.buchungen.filter((b) => b.tag === t).map((b) => b.project_id)).size;
+    const z = Number(ziele[t - 1]) || 0;
+    const krank = daten.buchungen.filter((b) => b.tag === t && b.krank);
+    const ohne = krank.filter((b) => !b.vertretung).length;
+    const abw = daten.abwesend.find((a) => a.tag === t);
+    const k = el("div", "zkachel" + (z && n >= z ? " erreicht" : ""));
+    let h = '<div class="k">' + TAGE[t] + (datum(t) ? " · " + esc(datum(t)) : "") + '</div><div class="w">' + n +
+      (z ? "<small> / " + z + "</small>" : "") + "</div>";
+    if (z) h += '<div class="balken"><i style="width:' + Math.min(100, Math.round(n / z * 100)) + '%"></i></div>' +
+      '<div class="r ziel">' + (n >= z ? "Ziel erreicht" : "noch " + (z - n) + " fehlen") + "</div>";
+    else h += '<div class="r">Projekte · kein Tagesziel</div>';
+    h += '<div class="r' + (ohne ? " rot" : "") + '">' + KRANK_SVG + " " + krank.length + " krank" + (ohne ? " · " + ohne + " ohne Vertretung" : "") + "</div>";
+    k.innerHTML = h;
+    const b = el("button", "abwknopf", "Abwesend: " + (abw ? abw.anzahl : 0) + "  ✎");
+    b.type = "button";
+    b.title = abw && abw.notiz ? abw.notiz : "Abwesende Kollegen eintragen";
+    b.onclick = () => abwOeffnen(t);
+    k.appendChild(b);
+    box.appendChild(k);
+  }
+  return box;
+}
+
+function abwOeffnen(t) {
+  abwTag = t;
+  const a = daten.abwesend.find((x) => x.tag === t) || { anzahl: 0, notiz: "" };
+  $("abwTitel").textContent = "Abwesende Kollegen · " + TAGE[t] + (datum(t) ? ", " + datum(t) : "");
+  $("abwAnzahl").value = a.anzahl || 0;
+  $("abwNotiz").value = a.notiz || "";
+  $("abwSuche").value = "";
+  renderAbwListe();
+  $("abwDialog").showModal();
+  $("abwAnzahl").select();
+}
+
+/* Kollegen mit Einsatz an diesem Tag – Krankmeldung direkt in der Liste */
+function renderAbwListe() {
+  const t = abwTag;
+  const q = $("abwSuche").value.trim().toLowerCase();
+  const liste = daten.buchungen.filter((b) => b.tag === t)
+    .map((b) => ({ b, p: projektVon(b.project_id) })).filter((x) => x.p)
+    .filter(({ b, p }) => !q || (p.kuerzel + " " + p.name + " " + (p.mitwirkende || "") + " " + p.thema + " " + b.room + " " + (b.vertretung || "")).toLowerCase().includes(q))
+    .sort((x, y) => x.p.kuerzel.localeCompare(y.p.kuerzel, "de"));
+  const krank = daten.buchungen.filter((b) => b.tag === t && b.krank).length;
+  $("abwListeTitel").textContent = "Eingesetzte Kollegen · " + liste.length + (krank ? " · " + krank + " krank" : "");
+
+  const tab = $("abwListe");
+  tab.innerHTML = "<thead><tr><th></th><th>Lehrkraft</th><th>Projekt · Raum</th><th>Vertretung</th></tr></thead>";
+  const tb = el("tbody");
+  liste.forEach(({ b, p }) => {
+    const tr = el("tr");
+    const td0 = el("td");
+    td0.style.width = "1%";
+    const k = knopf("", "zurueck mini krankknopf" + (b.krank ? " krankaktiv" : ""));
+    k.innerHTML = KRANK_SVG;
+    k.title = b.krank ? "Krankmeldung aufheben" : "Krank melden";
+    k.setAttribute("aria-label", (b.krank ? "Krankmeldung aufheben: " : "Krank melden: ") + p.kuerzel);
+    k.onclick = () => krankSchnell(b, !b.krank, b.krank ? "" : null);
+    td0.appendChild(k);
+
+    const td1 = el("td");
+    td1.innerHTML = "<b>" + esc(p.kuerzel) + "</b>" + (p.mitwirkende ? ' <span class="leise">+ ' + esc(p.mitwirkende) + "</span>" : "") +
+      '<div class="leise">' + esc(p.name) + "</div>";
+    if (b.krank) td1.querySelector("b").classList.add("krankmarke");
+
+    const td2 = el("td");
+    td2.innerHTML = esc(p.thema) + '<div class="leise">' + esc(ortText(b, true)) + " · " + esc(stundenText(b.std_von, b.std_bis)) + "</div>";
+
+    const td3 = el("td");
+    td3.style.minWidth = "170px";
+    if (b.krank) {
+      const f = input(b.vertretung || "", "Kürzel/Name");
+      vertretungsFeld(f, t, p.kuerzel);
+      f.maxLength = 60;
+      f.setAttribute("aria-label", "Vertretung für " + p.kuerzel);
+      f.onchange = () => { if (f.value.trim() !== (b.vertretung || "")) krankSchnell(b, true, f.value.trim()); };
+      f.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); f.blur(); } };   /* blur löst change aus */
+      td3.appendChild(f);
+      if (!b.vertretung) td3.appendChild(el("div", "leise krankmarke", "noch offen"));
+    } else {
+      td3.appendChild(el("span", "leise", "–"));
+    }
+    tr.append(td0, td1, td2, td3);
+    tb.appendChild(tr);
+  });
+  if (!liste.length) {
+    const tr = el("tr");
+    const td = el("td", "leise", q ? "Keine Treffer." : "An diesem Tag sind keine Projekte gebucht.");
+    td.colSpan = 4;
+    tr.appendChild(td);
+    tb.appendChild(tr);
+  }
+  tab.appendChild(tb);
+}
+
+async function krankSchnell(b, krank, vertretung) {
+  try {
+    await admin("pw_admin_set_krank", { p_booking: b.id, p_krank: krank, p_vertretung: krank ? (vertretung || b.vertretung || null) : null });
+    await laden();
+    renderAlles();
+    renderAbwListe();
+    const p = projektVon(b.project_id);
+    meldung((p ? p.kuerzel + ": " : "") + (krank ? (vertretung ? "Vertretung " + vertretung + " eingetragen." : "krank gemeldet.") : "Krankmeldung aufgehoben."));
+    if (krank && vertretung === null) {
+      const feld = document.querySelector('#abwListe input[aria-label="Vertretung für ' + (p ? p.kuerzel.replace(/"/g, "") : "") + '"]');
+      if (feld) feld.focus();
+    }
+  } catch (e) {
+    meldung(e.message, true);
+  }
+}
+
+async function abwSpeichern() {
+  const n = Math.max(0, Math.round(Number($("abwAnzahl").value) || 0));
+  const ok = await aktion("pw_admin_set_abwesend",
+    { p_tag: abwTag, p_anzahl: n, p_notiz: $("abwNotiz").value.trim() || null }, "Abwesende gespeichert.");
+  if (ok !== undefined) $("abwDialog").close();
+}
+
+function projektTreffer(p, q) {
+  if (!q) return true;
+  const raeume = buchungenVon(p.id).map((b) => b.room + " " + (b.ort || "") + " " + (b.vertretung || "")).join(" ");
+  return (p.thema + " " + p.kuerzel + " " + p.name + " " + (p.mitwirkende || "") + " " + (p.kosten_info || "") + " " + raeume)
+    .toLowerCase().includes(q);
+}
+
+/* ---------- Belegung (Projekt voll / frei) ---------- */
+function vollPunkt(b) {
+  return '<span class="punkt ' + (b.voll ? "rot" : "gruen") + '" title="' + (b.voll ? "voll gemeldet" : "noch Plätze frei") + '"></span>';
+}
+
+function heuteTagAdmin() {
+  const s = daten.status.woche_start;
+  if (!s) return null;
+  const heute = new Date(); heute.setHours(0, 0, 0, 0);
+  const d = Math.round((heute - new Date(s + "T00:00:00")) / 86400000);
+  return d >= 0 && d <= 4 ? d + 1 : null;
+}
+
+function belegungsliste() {
+  const v = ansicht.plan;
+  if (!v.tag) v.tag = heuteTagAdmin() || 1;
+  const t = v.tag;
+  const q = v.suche.trim().toLowerCase();
+  const wrap = el("div");
+  wrap.style.padding = "14px";
+
+  const kopf = el("div", "zeile");
+  kopf.style.alignItems = "center";
+  const tage = el("div", "filterreihe");
+  tage.style.margin = "0";
+  const heute = heuteTagAdmin();
+  [1, 2, 3, 4, 5].forEach((d) => {
+    const b = el("button", "filter", TAGE_KURZ[d] + (datum(d) ? " " + datum(d).slice(0, 6) : "") + (d === heute ? " · heute" : ""));
+    b.type = "button";
+    b.setAttribute("aria-pressed", String(d === t));
+    b.onclick = () => { v.tag = d; renderAlles(); };
+    tage.appendChild(b);
+  });
+  kopf.appendChild(tage);
+
+  /* Filter frei / voll + Aktualisieren */
+  const fr = el("div", "filterreihe");
+  fr.style.margin = "0";
+  fr.style.flex = "0 0 auto";
+  fr.style.alignItems = "center";
+  [["alle", "Alle"], ["frei", "Nur freie"], ["voll", "Nur volle"]].forEach(([w, txt]) => {
+    const b = el("button", "filter", txt);
+    b.type = "button";
+    b.setAttribute("aria-pressed", String(v.belegFilter === w));
+    b.onclick = () => { v.belegFilter = w; renderAlles(); };
+    fr.appendChild(b);
+  });
+  const ak = el("button", "aktualisieren", "↻");
+  ak.type = "button";
+  ak.title = "Jetzt aktualisieren";
+  ak.setAttribute("aria-label", "Belegung jetzt aktualisieren");
+  ak.onclick = async () => {
+    ak.classList.add("dreht");
+    try { await laden(); renderAlles(); meldung("Aktualisiert " + new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) + " Uhr."); }
+    catch (e) { meldung(e.message, true); ak.classList.remove("dreht"); }
+  };
+  fr.appendChild(ak);
+  kopf.appendChild(fr);
+  wrap.appendChild(kopf);
+
+  const alle = daten.buchungen.filter((b) => b.tag === t);
+  const voll = alle.filter((b) => b.voll).length;
+  const info = el("p", "abschnitt-hinweis");
+  info.style.margin = "12px 0";
+  info.innerHTML = '<span class="punkt rot"></span> <b>' + voll + "</b> voll gemeldet &nbsp; " +
+    '<span class="punkt gruen"></span> <b>' + (alle.length - voll) + "</b> noch frei" +
+    (daten.status.woche_laeuft ? "" : " &nbsp;·&nbsp; Hinweis: Meldungen sind erst möglich, wenn unter Einstellungen „Projektwoche läuft“ an ist.");
+  wrap.appendChild(info);
+
+  const liste = alle.map((b) => ({ b, p: projektVon(b.project_id) })).filter((x) => x.p)
+    .filter(({ b, p }) => !q || projektTreffer(p, q) || b.room.toLowerCase().includes(q))
+    .filter(({ b }) => v.belegFilter === "alle" || (v.belegFilter === "frei" ? !b.voll : b.voll))
+    .sort((x, y) => (y.b.voll - x.b.voll) || (istExkursion(x.b.room) - istExkursion(y.b.room)) ||
+      x.b.room.localeCompare(y.b.room, "de", { numeric: true }));
+  const t2 = el("table", "tabelle");
+  t2.innerHTML = "<thead><tr><th>Raum / Ort</th><th>Projekt</th><th>Lehrkräfte</th><th>gemeldet</th><th></th></tr></thead>";
+  const tb = el("tbody");
+  liste.forEach(({ b, p }) => {
+    const tr = el("tr");
+    tr.innerHTML = "<td class=\"nr\">" + esc(ortText(b, true)) + "</td><td><span class=\"chipkopf\"><b>" + esc(p.thema) + "</b>" + vollPunkt(b) + "</span></td><td>" +
+      esc(lehrkraefte(p)) + (b.krank && b.vertretung ? '<div class="leise">Vertretung: ' + esc(b.vertretung) + "</div>" : "") + "</td><td class=\"leise\">" +
+      (b.voll && b.voll_um ? new Date(b.voll_um).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) + " Uhr" : "–") + "</td>";
+    const td = el("td");
+    td.style.textAlign = "right";
+    td.appendChild(knopf(b.voll ? "Auf frei setzen" : "Voll setzen", "zurueck mini", () =>
+      aktion("pw_admin_set_voll", { p_booking: b.id, p_voll: !b.voll }, b.voll ? "Wieder frei." : "Als voll markiert.")));
+    tr.appendChild(td);
+    tb.appendChild(tr);
+  });
+  if (!liste.length) {
+    const tr = el("tr");
+    const td = el("td", "leise", v.belegFilter === "frei" ? "Keine freien Projekte mehr an diesem Tag." :
+      v.belegFilter === "voll" ? "Noch kein Projekt als voll gemeldet." : "Keine Projekte an diesem Tag.");
+    td.colSpan = 5;
+    tr.appendChild(td);
+    tb.appendChild(tr);
+  }
+  t2.appendChild(tb);
+  wrap.appendChild(t2);
+
+  const r = el("div", "buttonreihe");
+  r.appendChild(knopf("Alle Meldungen zurücksetzen …", "gefahr mini", async () => {
+    if (!confirm("Alle „voll“-Meldungen aller Tage zurücksetzen (z. B. nach einem Testlauf)?")) return;
+    await aktion("pw_admin_reset_voll", {}, "Alle Meldungen zurückgesetzt.");
+  }));
+  wrap.appendChild(r);
+  return wrap;
+}
+
+function wochenraster() {
+  const v = ansicht.plan;
+  const q = v.suche.trim().toLowerCase();
+  const tabelle = el("table", "tabelle wochenraster");
+  let kopf = "<thead><tr><th>Raum</th>";
+  for (let t = 1; t <= 5; t++) kopf += "<th>" + TAGE[t] + (datum(t) ? " · " + datum(t) : "") + "</th>";
+  tabelle.innerHTML = kopf + "</tr></thead>";
+  const koerper = el("tbody");
+
+  const treffer = (b) => !q || projektTreffer(projektVon(b.project_id) || { thema: "", kuerzel: "", name: "", id: -1 }, q);
+  let raeume = daten.raeume.slice().sort(vergleichRaum);
+  raeume = raeume.filter((r) => {
+    const hat = daten.buchungen.some((b) => b.room === r.nummer && treffer(b));
+    if (q) return hat || r.nummer.toLowerCase().includes(q);
+    return hat || (v.alleRaeume && !r.versteckt && !r.ist_exkursion);
+  });
+
+  raeume.forEach((r) => {
+    const tr = el("tr");
+    const erste = el("td");
+    erste.innerHTML = '<span class="nr">' + (r.ist_exkursion ? "🚌 Exkursion" : esc(r.nummer)) + "</span>" +
+      (r.beschreibung && !r.ist_exkursion ? '<div class="leise">' + esc(r.beschreibung) + "</div>" : "") +
+      (r.versteckt ? '<div class="leise">ausgeblendet</div>' : "");
+    tr.appendChild(erste);
+    for (let t = 1; t <= 5; t++) {
+      const td = el("td");
+      daten.buchungen.filter((b) => b.room === r.nummer && b.tag === t && treffer(b)).forEach((b) => {
+        const p = projektVon(b.project_id);
+        if (!p) return;
+        const chip = el("button", "buchungschip" + (b.krank ? " krank" : ""));
+        chip.type = "button";
+        let html = '<span class="chipkopf"><span><b>' + esc(p.kuerzel) + "</b> " + esc(p.thema) + "</span>" +
+          (daten.status.woche_laeuft || b.voll ? vollPunkt(b) : "") + "</span>";
+        const zusatz = [];
+        if (!(b.std_von <= 2 && b.std_bis === 6)) zusatz.push(stundenText(b.std_von, b.std_bis));
+        if (b.ort) zusatz.push(b.ort);
+        if (b.krank) zusatz.push("krank" + (b.vertretung ? " → " + b.vertretung : " · keine Vertretung"));
+        if (zusatz.length) html += "<small>" + esc(zusatz.join(" · ")) + "</small>";
+        chip.innerHTML = html;
+        chip.title = "Klicken zum Umbuchen";
+        chip.onclick = () => umbuchen(b.id);
+        td.appendChild(chip);
+      });
+      tr.appendChild(td);
+    }
+    koerper.appendChild(tr);
+  });
+
+  if (!raeume.length) {
+    const tr = el("tr");
+    const td = el("td", "leise", q ? "Keine Treffer." : "Noch keine Buchungen.");
+    td.colSpan = 6;
+    tr.appendChild(td);
+    koerper.appendChild(tr);
+  }
+  tabelle.appendChild(koerper);
+  return tabelle;
+}
+
+function projektliste() {
+  const q = ansicht.plan.suche.trim().toLowerCase();
+  const tabelle = el("table", "tabelle");
+  let kopf = "<thead><tr><th>Projekt</th><th>Lehrkräfte</th><th>Klassen</th><th>Kosten</th>";
+  for (let t = 1; t <= 5; t++) kopf += "<th>" + TAGE_KURZ[t] + "</th>";
+  tabelle.innerHTML = kopf + "</tr></thead>";
+  const koerper = el("tbody");
+
+  const liste = daten.projekte.filter((p) => projektTreffer(p, q))
+    .sort((a, b) => a.thema.localeCompare(b.thema, "de"));
+
+  liste.forEach((p) => {
+    const tr = el("tr", "klickbar");
+    tr.onclick = () => projektOeffnen(p.id);
+    let html = "<td><b>" + esc(p.thema) + "</b></td><td>" + esc(lehrkraefte(p)) +
+      '<div class="leise">' + esc(p.name) + "</div></td><td>" + esc(klassenText(p)) + "</td><td>" + esc(kostenKurz(p)) + "</td>";
+    const bs = buchungenVon(p.id);
+    for (let t = 1; t <= 5; t++) {
+      const tagB = bs.filter((b) => b.tag === t);
+      html += "<td>" + (tagB.length ? tagB.map((b) =>
+        (b.krank ? '<span class="krankmarke">' : "<span>") +
+        esc(istExkursion(b.room) ? "Exk." : b.room) + "</span>").join("<br>") : '<span class="leise">–</span>') + "</td>";
+    }
+    tr.innerHTML = html;
+    koerper.appendChild(tr);
+  });
+
+  if (!liste.length) {
+    const tr = el("tr");
+    const td = el("td", "leise", q ? "Keine Treffer." : "Noch keine Projekte.");
+    td.colSpan = 9;
+    tr.appendChild(td);
+    koerper.appendChild(tr);
+  }
+  tabelle.appendChild(koerper);
+  return tabelle;
+}
+
+/* ---------- Projektdialog ---------- */
+
+function projektOeffnen(id) {
+  offenesProjekt = id;
+  renderProjektDialog();
+  if (!$("projektDialog").open) $("projektDialog").showModal();
+}
+
+function renderProjektDialog() {
+  const p = projektVon(offenesProjekt);
+  const box = $("pdInhalt");
+  box.innerHTML = "";
+  if (!p) { $("projektDialog").close(); offenesProjekt = null; return; }
+
+  $("pdTitel").textContent = p.thema;
+
+  const z1 = el("div", "zeile");
+  const fThema = input(p.thema); fThema.id = "pdThema"; fThema.maxLength = 120;
+  z1.appendChild(feldMitLabel("Thema", fThema));
+  box.appendChild(z1);
+
+  const z2 = el("div", "zeile feldgruppe");
+  const fK = input(p.kuerzel); fK.id = "pdKuerzel"; fK.maxLength = 5;
+  const fN = input(p.name); fN.id = "pdName";
+  const fM = input(p.mitwirkende || "", "Kürzel weiterer Lehrkräfte"); fM.id = "pdMit";
+  const k1 = feldMitLabel("Kürzel", fK); k1.className = "schmal";
+  z2.append(k1, feldMitLabel("Name", fN), feldMitLabel("Weitere Lehrkräfte", fM));
+  box.appendChild(z2);
+
+  const zK = el("div", "zeile feldgruppe");
+  const fKo = input(Number(p.kosten) ? String(p.kosten).replace(".", ",") : "", "0"); fKo.id = "pdKosten";
+  fKo.inputMode = "decimal"; fKo.maxLength = 4;
+  const fKi = input(p.kosten_info || "", "z. B. Material, Eintritt"); fKi.id = "pdKostenInfo"; fKi.maxLength = 80;
+  const zB = el("div", "feldgruppe");
+  const fBe = el("textarea", "feld"); fBe.id = "pdBeschr"; fBe.maxLength = 300; fBe.rows = 3;
+  fBe.style.fontFamily = "inherit"; fBe.style.minHeight = "70px"; fBe.value = p.beschreibung || "";
+  fBe.placeholder = "Kurzbeschreibung für den Aushang (max. 300 Zeichen)";
+  const zz = el("div", "leise", fBe.value.length + " / 300"); zz.style.textAlign = "right"; zz.style.fontSize = "12.5px";
+  fBe.oninput = () => { fBe.value = fBe.value.replace(/\s*\n\s*/g, " "); zz.textContent = fBe.value.length + " / 300"; };
+  zB.append(feldMitLabel("Kurzbeschreibung", fBe), zz);
+  box.appendChild(zB);
+  const kk = feldMitLabel("Kosten pro Schüler (max. 5 €)", fKo); kk.className = "schmal"; kk.style.flexBasis = "170px";
+  zK.append(kk, feldMitLabel("wofür?", fKi));
+  box.appendChild(zK);
+
+  const klassen = [];
+  for (let i = 5; i <= 12; i++) klassen.push([i, "Klasse " + i]);
+  const z3 = el("div", "zeile feldgruppe");
+  const fV = auswahl(klassen, p.klasse_von); fV.id = "pdVon";
+  const fB = auswahl(klassen, p.klasse_bis); fB.id = "pdBis";
+  z3.append(feldMitLabel("von", fV), feldMitLabel("bis", fB));
+  box.appendChild(z3);
+
+  box.appendChild(el("hr", "trenner"));
+  const kopf = el("div", "zeile");
+  kopf.style.alignItems = "center";
+  const h = el("h3", "abschnitt", "Tage und Räume");
+  h.style.flex = "1";
+  const bs = buchungenVon(p.id);
+  const plus = knopf("＋ Tag hinzufügen", "zurueck mini", () => buchungOeffnen(null, p.id));
+  plus.disabled = bs.length >= 5;
+  kopf.append(h, plus);
+  box.appendChild(kopf);
+
+  const ul = el("ul", "buchungsliste");
+  bs.forEach((b) => {
+    const li = el("li");
+    const text = el("div", "text");
+    text.innerHTML = '<span class="t">' + TAGE_KURZ[b.tag] + "</span>" + esc(ortText(b, true)) +
+      ' <span class="leise">· ' + esc(stundenText(b.std_von, b.std_bis)) + "</span>" +
+      (b.krank ? '<div class="krankmarke">krank' + (b.vertretung ? " · Vertretung: " + esc(b.vertretung) : " · noch keine Vertretung") + "</div>" : "");
+    li.append(
+      text,
+      Object.assign(knopf("", "zurueck mini krankknopf" + (b.krank ? " krankaktiv" : ""), () => krankOeffnen(b.id)),
+        { innerHTML: KRANK_SVG, title: b.krank ? "Krankmeldung ändern" : "Krank melden", ariaLabel: "Krankmeldung " + TAGE[b.tag] }),
+      knopf("Umbuchen", "zurueck mini", () => umbuchen(b.id)),
+      knopf("Bearbeiten", "zurueck mini", () => buchungOeffnen(b.id, p.id)),
+      knopf("Entfernen", "gefahr mini", async () => {
+        if (!confirm(TAGE[b.tag] + " aus dem Projekt entfernen?")) return;
+        await aktion("pw_admin_booking_delete", { p_id: b.id }, "Tag entfernt.");
+      })
+    );
+    ul.appendChild(li);
+  });
+  if (!bs.length) ul.appendChild(el("li", "leise", "Keine Tage gebucht."));
+  box.appendChild(ul);
+
+  const codeBox = el("div");
+  codeBox.id = "pdCodeBox";
+  box.appendChild(codeBox);
+}
+
+async function projektSpeichern() {
+  const p = projektVon(offenesProjekt);
+  if (!p) return;
+  const werte = {
+    p_id: p.id,
+    p_thema: $("pdThema").value.trim(),
+    p_kuerzel: $("pdKuerzel").value.trim(),
+    p_name: $("pdName").value.trim(),
+    p_mitwirkende: $("pdMit").value.trim() || null,
+    p_kosten: kostenZahl($("pdKosten").value),
+    p_kosten_info: $("pdKostenInfo").value.trim() || null,
+    p_beschreibung: $("pdBeschr").value.trim() || null,
+    p_klasse_von: Number($("pdVon").value),
+    p_klasse_bis: Number($("pdBis").value)
+  };
+  if (!werte.p_thema || !werte.p_name) { meldung("Thema und Name dürfen nicht leer sein.", true); return; }
+  if (werte.p_kuerzel.length < 2 || werte.p_kuerzel.length > 5) { meldung("Das Kürzel muss 2 bis 5 Zeichen haben.", true); return; }
+  if (isNaN(werte.p_kosten) || werte.p_kosten < 0 || werte.p_kosten > 5) { meldung("Die Kosten dürfen höchstens 5 € pro Schüler betragen.", true); return; }
+  if (werte.p_klasse_von > werte.p_klasse_bis) { meldung("Klassenstufe „von“ ist größer als „bis“.", true); return; }
+  const ok = await aktion("pw_admin_project_update", werte, "Projekt gespeichert.");
+  if (ok !== undefined) $("projektDialog").close();
+}
+
+/* ---------- Buchungsdialog ---------- */
+
+/* Schnell-Umbuchung: Kachel-Overlay direkt öffnen, Klick auf einen Raum bucht sofort um */
+function umbuchen(buchungId) {
+  const b = daten.buchungen.find((x) => x.id === buchungId);
+  const p = b && projektVon(b.project_id);
+  if (!b || !p) return;
+  bd = {
+    id: b.id, pid: p.id, tag: b.tag, raum: b.room, ort: b.ort || "",
+    ganz: b.std_von <= 2 && b.std_bis === 6, von: b.std_von, bis: b.std_bis,
+    krank: b.krank, vertretung: b.vertretung || "", original: b, schnell: true
+  };
+  raumwahlOeffnen();
+}
+
+async function umbuchenSpeichern(r) {
+  const o = bd.original;
+  if (r.nummer === o.room) { $("raumDialog").close(); return; }
+  if (r.ist_exkursion) {
+    /* Für eine Exkursion wird ein Ziel gebraucht: in die volle Maske wechseln */
+    bd.raum = r.nummer;
+    bd.ort = "";
+    bd.schnell = false;
+    $("raumDialog").close();
+    $("bdTitel").textContent = TAGE[bd.tag] + " · " + projektVon(bd.pid).thema;
+    renderBuchungDialog();
+    $("buchungDialog").showModal();
+    return;
+  }
+  $("raumDialog").close();
+  const ok = await aktion("pw_admin_booking_move",
+    { p_id: o.id, p_room: r.nummer, p_tag: o.tag, p_von: o.std_von, p_bis: o.std_bis, p_ort: null },
+    TAGE_KURZ[o.tag] + ": " + (istExkursion(o.room) ? "Exkursion" : o.room) + " → " + r.nummer + " umgebucht.");
+  if (ok === undefined) umbuchen(o.id);
+}
+
+function buchungOeffnen(buchungId, projektId) {
+  const p = projektVon(projektId);
+  if (buchungId) {
+    const b = daten.buchungen.find((x) => x.id === buchungId);
+    bd = {
+      id: b.id, pid: projektId, tag: b.tag, raum: b.room, ort: b.ort || "",
+      ganz: b.std_von <= 2 && b.std_bis === 6, von: b.std_von, bis: b.std_bis,
+      krank: b.krank, vertretung: b.vertretung || "", original: b
+    };
+    $("bdTitel").textContent = TAGE[b.tag] + " · " + p.thema;
+  } else {
+    const belegt = buchungenVon(projektId).map((b) => b.tag);
+    const frei = [1, 2, 3, 4, 5].find((t) => !belegt.includes(t)) || 1;
+    bd = { id: null, pid: projektId, tag: frei, raum: "", ort: "", ganz: true, von: 2, bis: 6, krank: false, vertretung: "" };
+    $("bdTitel").textContent = "Tag hinzufügen · " + p.thema;
+  }
+  renderBuchungDialog();
+  $("buchungDialog").showModal();
+}
+
+function renderBuchungDialog() {
+  const box = $("bdInhalt");
+  box.innerHTML = "";
+  const von = bd.ganz ? 2 : bd.von, bis = bd.ganz ? 6 : bd.bis;
+  const andereTage = buchungenVon(bd.pid).filter((b) => b.id !== bd.id).map((b) => b.tag);
+
+  /* Tag */
+  const z1 = el("div", "zeile");
+  const sTag = el("select", "feld");
+  for (let t = 1; t <= 5; t++) {
+    const o = el("option", "", TAGE[t] + (datum(t) ? ", " + datum(t) : "") + (andereTage.includes(t) ? " (schon gebucht)" : ""));
+    o.value = t;
+    o.disabled = andereTage.includes(t);
+    if (t === bd.tag) o.selected = true;
+    sTag.appendChild(o);
+  }
+  sTag.onchange = () => { bd.tag = Number(sTag.value); renderBuchungDialog(); };
+  z1.appendChild(feldMitLabel("Tag", sTag));
+
+  /* Stunden */
+  const sStd = auswahl([["ganz", "Ganztägig (2.–6. Std.)"], ["teil", "Einzelne Stunden"]], bd.ganz ? "ganz" : "teil");
+  sStd.onchange = () => { bd.ganz = sStd.value === "ganz"; renderBuchungDialog(); };
+  z1.appendChild(feldMitLabel("Zeit", sStd));
+
+  if (!bd.ganz) {
+    const stunden = [2, 3, 4, 5, 6].map((i) => [i, i + ". Std."]);
+    const sV = auswahl(stunden, bd.von);
+    const sB = auswahl(stunden, bd.bis);
+    sV.onchange = () => { bd.von = Number(sV.value); if (bd.bis < bd.von) bd.bis = bd.von; renderBuchungDialog(); };
+    sB.onchange = () => { bd.bis = Number(sB.value); if (bd.von > bd.bis) bd.von = bd.bis; renderBuchungDialog(); };
+    const a = feldMitLabel("von", sV); a.className = "schmal";
+    const b = feldMitLabel("bis", sB); b.className = "schmal";
+    z1.append(a, b);
+  }
+  box.appendChild(z1);
+
+  /* Raum */
+  const wahl = el("button", "raumwahl" + (bd.raum ? "" : " leer"));
+  wahl.type = "button";
+  if (bd.raum) {
+    const r = raumInfo(bd.raum);
+    wahl.innerHTML = istExkursion(bd.raum) ? "🚌 <b>Exkursion</b>"
+      : "<b>" + esc(bd.raum) + "</b>" + (r && r.beschreibung ? " · " + esc(r.beschreibung) : "") +
+        (r && r.versteckt ? " (ausgeblendet)" : "");
+    wahl.title = "Raum ändern";
+  } else {
+    wahl.textContent = "＋ Raum wählen";
+  }
+  wahl.onclick = raumwahlOeffnen;
+  const zr = el("div", "feldgruppe");
+  const lr = el("span", "label", "Raum");
+  zr.append(lr, wahl);
+  box.appendChild(zr);
+
+  if (bd.raum && istExkursion(bd.raum)) {
+    const fOrt = input(bd.ort, "Ziel der Exkursion");
+    fOrt.oninput = () => { bd.ort = fOrt.value; };
+    const zo = el("div", "feldgruppe");
+    zo.appendChild(feldMitLabel("Ziel", fOrt));
+    box.appendChild(zo);
+  }
+
+  const k = konflikt(bd.raum, bd.tag, von, bis, bd.id);
+  if (k) {
+    const p = projektVon(k.project_id);
+    box.appendChild(el("p", "hinweisbox warnung", "Der Raum ist zu dieser Zeit belegt durch " +
+      (p ? p.kuerzel + " – " + p.thema : "ein anderes Projekt") + " (" + stundenText(k.std_von, k.std_bis) +
+      "). Bitte anderen Raum, Tag oder andere Stunden wählen."));
+  }
+
+  /* Krankmeldung nur bei bestehender Buchung */
+  if (bd.id) {
+    box.appendChild(el("hr", "trenner"));
+    box.appendChild(el("h3", "abschnitt", "Krankmeldung"));
+    const sch = el("label", "schalter");
+    sch.style.marginTop = "8px";
+    const cb = input(null, null, "checkbox");
+    cb.checked = bd.krank;
+    cb.onchange = () => { bd.krank = cb.checked; renderBuchungDialog(); };
+    sch.append(cb, el("span", "", "Lehrkraft ist an diesem Tag krank"));
+    box.appendChild(sch);
+    if (bd.krank) {
+      const fV = input(bd.vertretung, "Kürzel oder Name der Vertretung");
+      vertretungsFeld(fV, bd.tag, (projektVon(bd.pid) || {}).kuerzel);
+      fV.oninput = () => { bd.vertretung = fV.value; };
+      const zv = el("div", "feldgruppe");
+      zv.appendChild(feldMitLabel("Vertretung", fV));
+      box.appendChild(zv);
+    }
+  }
+}
+
+/* ---------- Löschen mit Passwort ---------- */
+
+let loeschModus = "projekte";
+
+function loeschenOeffnen(modus) {
+  loeschModus = modus;
+  const mitBuchung = new Set(daten.buchungen.map((b) => b.room));
+  const raeume = daten.raeume.filter((r) => !r.ist_exkursion);
+  if (modus === "projekte") {
+    $("ldTitel").textContent = "Alle Projekte löschen";
+    $("ldText").textContent = "Gelöscht werden alle " + daten.projekte.length + " Projekte mit allen " + daten.buchungen.length +
+      " Tagesbuchungen, Krankmeldungen und Änderungscodes. Räume, Gruppen und Einstellungen bleiben erhalten. Das lässt sich nicht rückgängig machen.";
+    $("ldAbwZeile").hidden = false;
+  } else {
+    const gesperrt = raeume.filter((r) => mitBuchung.has(r.nummer)).length;
+    $("ldTitel").textContent = "Alle Räume löschen";
+    $("ldText").textContent = "Gelöscht werden alle Räume ohne Buchungen (" + (raeume.length - gesperrt) + " von " + raeume.length + ")" +
+      (gesperrt ? ". " + gesperrt + " Räume haben noch Buchungen und bleiben erhalten – vorher ggf. die Projekte löschen" : "") +
+      ". Gruppen bleiben bestehen, ihre Zuordnungen entfallen. Das lässt sich nicht rückgängig machen.";
+    $("ldAbwZeile").hidden = true;
+  }
+  $("ldPw").value = "";
+  $("loeschDialog").showModal();
+  $("ldPw").focus();
+}
+
+async function loeschenAusfuehren() {
+  const pw = $("ldPw").value;
+  if (!pw) { meldung("Bitte das Admin-Passwort eingeben.", true); return; }
+  const k = $("ldOk");
+  k.disabled = true;
+  try {
+    let text;
+    if (loeschModus === "projekte") {
+      const n = await rpc("pw_admin_reset_projekte", { p_pw: pw, p_abwesend: $("ldAbw").checked });
+      text = n + " Projekte gelöscht.";
+    } else {
+      const erg = await rpc("pw_admin_rooms_delete_all", { p_pw: pw });
+      text = erg.geloescht + " Räume gelöscht" + (erg.behalten ? ", " + erg.behalten + " mit Buchungen behalten." : ".");
+    }
+    $("loeschDialog").close();
+    importHinweis = "";
+    await laden();
+    renderAlles();
+    meldung(text);
+  } catch (e) {
+    meldung(/Kein Admin-Zugriff/.test(e.message) ? "Passwort falsch – nichts gelöscht." : e.message, true);
+  } finally {
+    k.disabled = false;
+  }
+}
+
+/* ---------- Krankmeldung (Schnellzugriff) ---------- */
+
+let krankId = null;
+let krankTag = 1, krankAusser = "";
+
+function krankOeffnen(buchungId) {
+  const b = daten.buchungen.find((x) => x.id === buchungId);
+  const p = b && projektVon(b.project_id);
+  if (!b || !p) return;
+  krankId = b.id;
+  $("kdTitel").textContent = "Krankmeldung · " + TAGE[b.tag];
+  $("kdText").textContent = p.kuerzel + " – „" + p.thema + "“ · " + ortText(b, true) + " · " + stundenText(b.std_von, b.std_bis);
+  $("kdVertretung").value = b.vertretung || "";
+  krankTag = b.tag;
+  krankAusser = p.kuerzel;
+  $("kdAufheben").hidden = !b.krank;
+  $("kdSpeichern").textContent = b.krank ? "Speichern" : "Krank melden";
+  $("krankDialog").showModal();
+  $("kdVertretung").focus();
+}
+
+async function krankSpeichern(krank) {
+  const vertretung = krank ? $("kdVertretung").value.trim() : "";
+  const ok = await aktion("pw_admin_set_krank",
+    { p_booking: krankId, p_krank: krank, p_vertretung: vertretung || null },
+    krank ? "Krankmeldung gespeichert." : "Krankmeldung aufgehoben.");
+  if (ok !== undefined) $("krankDialog").close();
+}
+
+/* ---------- Raumauswahl (Kacheln) ---------- */
+
+function raumwahlOeffnen() {
+  const p = projektVon(bd.pid);
+  $("rdTitel").textContent = bd.schnell
+    ? "Umbuchen · " + TAGE[bd.tag] + (datum(bd.tag) ? ", " + datum(bd.tag) : "")
+    : "Raum für " + TAGE[bd.tag] + (datum(bd.tag) ? ", " + datum(bd.tag) : "") + " wählen";
+  const info = $("rdInfo");
+  info.hidden = !bd.schnell;
+  if (bd.schnell && p) {
+    info.innerHTML = "<b>" + esc(p.kuerzel) + "</b> – " + esc(p.thema) + " · " + esc(stundenText(bd.von, bd.bis)) +
+      " · bisher <b>" + esc(istExkursion(bd.raum) ? "Exkursion" : bd.raum) + "</b>. Klick auf einen freien Raum bucht sofort um. ";
+    const pk = el("button", "knopf zurueck mini", "Ganzes Projekt öffnen");
+    pk.type = "button";
+    pk.onclick = () => { $("raumDialog").close(); projektOeffnen(bd.pid); };
+    info.appendChild(pk);
+  }
+  $("rdSuche").value = rw.suche;
+  $("rdNurFrei").checked = rw.nurFrei;
+  renderRaumFilter();
+  renderRaumwahl();
+  $("raumDialog").showModal();
+}
+
+function renderRaumFilter() {
+  const box = $("rdFilter");
+  box.innerHTML = "";
+  const gebaeude = [...new Set(daten.raeume.filter((r) => r.trakt !== null && !r.versteckt).map((r) => r.trakt))].sort();
+  const chip = (text, aktiv, klick) => {
+    const b = el("button", "filter", text);
+    b.type = "button";
+    b.setAttribute("aria-pressed", String(aktiv));
+    b.onclick = () => { klick(); renderRaumFilter(); renderRaumwahl(); };
+    box.appendChild(b);
+  };
+  chip("Alle", rw.gebaeude === "alle" && rw.gruppe === null, () => { rw.gebaeude = "alle"; rw.gruppe = null; });
+  gebaeude.forEach((g) => chip("Trakt " + g, rw.gebaeude === g, () => { rw.gebaeude = g; rw.gruppe = null; }));
+  daten.gruppen.forEach((g) => chip(g.name, rw.gruppe === g.id, () => { rw.gruppe = g.id; rw.gebaeude = "alle"; }));
+}
+
+function belegtListe(liste) {
+  return liste.map((b) => {
+    const p = projektVon(b.project_id);
+    return (p ? p.kuerzel + " – " + p.thema : "?") + " (" + stundenText(b.std_von, b.std_bis) + ")";
+  }).join(", ");
+}
+
+function renderRaumwahl() {
+  const box = $("rdInhalt");
+  box.innerHTML = "";
+  const von = bd.ganz ? 2 : bd.von, bis = bd.ganz ? 6 : bd.bis;
+  const q = rw.suche.trim().toLowerCase();
+  const gr = rw.gruppe === null ? null
+    : new Set(daten.raumGruppen.filter((x) => x.group_id === rw.gruppe).map((x) => x.room));
+
+  const abschnitt = (titel, raeume) => {
+    const sek = el("section", "raumabschnitt");
+    sek.appendChild(el("h3", "", titel));
+    const gitter = el("div", "raumgitter");
+    raeume.forEach((r) => gitter.appendChild(kachel(r)));
+    sek.appendChild(gitter);
+    box.appendChild(sek);
+  };
+
+  const kachel = (r) => {
+    const b = el("button", "raum");
+    b.type = "button";
+    if (bd.raum === r.nummer) b.classList.add("gewaehlt");
+    let zustand, klasse;
+    if (r.ist_exkursion) { zustand = "für beliebig viele Projekte"; klasse = "frei"; }
+    else {
+      const andere = daten.buchungen.filter((x) => x.room === r.nummer && x.tag === bd.tag && x.id !== bd.id);
+      if (konflikt(r.nummer, bd.tag, von, bis, bd.id)) { zustand = "belegt: " + belegtListe(andere); klasse = "belegt"; b.disabled = true; }
+      else if (andere.length) { zustand = "frei · sonst belegt: " + belegtListe(andere); klasse = "teil"; }
+      else { zustand = von <= 2 && bis === 6 ? "ganztägig frei" : "frei"; klasse = "frei"; }
+    }
+    b.innerHTML = '<span class="rnr">' + (r.ist_exkursion ? "🚌 Exkursion" : esc(r.nummer)) + "</span>" +
+      '<span class="bes">' + esc(r.ist_exkursion ? "Ziel danach eintragen" :
+        (r.beschreibung || (r.etage !== null ? etageText(r.etage) : ""))) + "</span>" +
+      '<span class="zust ' + klasse + '">' + esc(zustand) + "</span>";
+    b.onclick = () => {
+      if (bd.schnell) { umbuchenSpeichern(r); return; }
+      if (bd.raum !== r.nummer && !r.ist_exkursion) bd.ort = "";
+      bd.raum = r.nummer;
+      $("raumDialog").close();
+      renderBuchungDialog();
+    };
+    return b;
+  };
+
+  if (rw.gebaeude === "alle" && !gr && (!q || "exkursion außer haus unterwegs".includes(q))) {
+    const exk = daten.raeume.filter((r) => r.ist_exkursion);
+    if (exk.length) abschnitt("Außerhalb der Schule", exk);
+  }
+
+  let liste = daten.raeume.filter((r) => !r.ist_exkursion && !r.versteckt);
+  if (rw.gebaeude !== "alle") liste = liste.filter((r) => r.trakt === rw.gebaeude);
+  if (gr) liste = liste.filter((r) => gr.has(r.nummer));
+  if (q) liste = liste.filter((r) => (r.nummer + " " + (r.beschreibung || "")).toLowerCase().includes(q));
+  if (rw.nurFrei) liste = liste.filter((r) => !konflikt(r.nummer, bd.tag, von, bis, bd.id));
+  liste.sort(vergleichRaum);
+
+  const gruppiert = new Map();
+  liste.forEach((r) => {
+    const s2 = r.trakt === null ? "9" : String(r.trakt);
+    if (!gruppiert.has(s2)) gruppiert.set(s2, []);
+    gruppiert.get(s2).push(r);
+  });
+  [...gruppiert.keys()].sort().forEach((s2) =>
+    abschnitt(s2 === "9" ? "Weitere Räume" : "Trakt " + s2, gruppiert.get(s2)));
+
+  if (!box.children.length) box.appendChild(el("p", "leer-hinweis", "Keine passenden Räume gefunden."));
+}
+
+async function buchungSpeichern() {
+  const von = bd.ganz ? 2 : bd.von, bis = bd.ganz ? 6 : bd.bis;
+  if (!bd.raum) { meldung("Bitte einen Raum wählen.", true); return; }
+  if (istExkursion(bd.raum) && !bd.ort.trim()) { meldung("Bitte das Ziel der Exkursion eintragen.", true); return; }
+  if (konflikt(bd.raum, bd.tag, von, bis, bd.id)) { meldung("Der Raum ist zu dieser Zeit belegt.", true); return; }
+
+  const knopfS = $("bdSpeichern");
+  knopfS.disabled = true;
+  try {
+    const ort = istExkursion(bd.raum) ? bd.ort.trim() : null;
+    if (!bd.id) {
+      await admin("pw_admin_booking_add", { p_project: bd.pid, p_room: bd.raum, p_tag: bd.tag, p_von: von, p_bis: bis, p_ort: ort });
+    } else {
+      const o = bd.original;
+      if (o.room !== bd.raum || o.tag !== bd.tag || o.std_von !== von || o.std_bis !== bis || (o.ort || null) !== ort) {
+        await admin("pw_admin_booking_move", { p_id: bd.id, p_room: bd.raum, p_tag: bd.tag, p_von: von, p_bis: bis, p_ort: ort });
+      }
+      const vertretung = bd.krank ? bd.vertretung.trim() : "";
+      if (o.krank !== bd.krank || (o.vertretung || "") !== vertretung) {
+        await admin("pw_admin_set_krank", { p_booking: bd.id, p_krank: bd.krank, p_vertretung: vertretung || null });
+      }
+    }
+    $("buchungDialog").close();
+    await laden();
+    renderAlles();
+    meldung("Gespeichert.");
+  } catch (e) {
+    meldung(e.message, true);
+    try { await laden(); renderAlles(); renderBuchungDialog(); } catch (x) { /* ignorieren */ }
+  } finally {
+    knopfS.disabled = false;
+  }
+}
+
+/* =========================================================
+   6 · Räume
+   ========================================================= */
+
+function renderRaeume(ziel) {
+  const oben = el("div", "raster2");
+  oben.style.marginBottom = "22px";
+
+  /* Import */
+  const kImp = karte("Raumliste importieren", "Eine Zeile pro Raum: Raumnummer;Beschreibung – die Beschreibung darf fehlen.");
+  const ta = el("textarea", "feld");
+  ta.placeholder = "3105;Computerraum\n3106\n1104;Mensa";
+  const datei = input(null, null, "file");
+  datei.accept = ".csv,.txt,text/csv,text/plain";
+  datei.style.marginTop = "10px";
+  const erkannt = el("p", "abschnitt-hinweis");
+  erkannt.style.margin = "8px 0 0";
+  const zeigeErkannt = () => {
+    const n = raumZeilen(ta.value).length;
+    erkannt.textContent = ta.value.trim() ? n + (n === 1 ? " Raum" : " Räume") + " erkannt." : "";
+  };
+  ta.oninput = zeigeErkannt;
+  datei.onchange = async () => {
+    const f = datei.files[0];
+    if (!f) return;
+    const roh = await f.arrayBuffer();
+    let text;
+    try { text = new TextDecoder("utf-8", { fatal: true }).decode(roh); }
+    catch (e) { text = new TextDecoder("windows-1252").decode(roh); }   /* Excel-CSV unter Windows */
+    ta.value = text.replace(/^\uFEFF/, "");
+    zeigeErkannt();
+  };
+  const modus = el("div", "filterreihe");
+  let ersetzen = false;
+  const zeichneModus = () => {
+    modus.innerHTML = "";
+    [[false, "Ergänzen"], [true, "Ersetzen"]].forEach(([w, t]) => {
+      const b = el("button", "filter", t);
+      b.type = "button";
+      b.setAttribute("aria-pressed", String(ersetzen === w));
+      b.onclick = () => { ersetzen = w; zeichneModus(); };
+      modus.appendChild(b);
+    });
+    erkl.textContent = ersetzen
+      ? "Ersetzen: Räume, die nicht in der Liste stehen, werden ausgeblendet (nicht gelöscht)."
+      : "Ergänzen: Neue Räume kommen hinzu, vorhandene behalten ihre Buchungen; Beschreibungen werden aktualisiert.";
+  };
+  const erkl = el("p", "abschnitt-hinweis");
+  erkl.style.margin = "8px 0 0";
+  zeichneModus();
+  const imp = knopf("Importieren", "", async () => {
+    const zeilen = raumZeilen(ta.value);
+    if (!zeilen.length) { meldung("In der Liste wurde kein Raum erkannt.", true); return; }
+    const text = zeilen.map(([n, b]) => n + ";" + b).join("\n");
+    if (ersetzen && !confirm("Alle Räume, die nicht in der Liste stehen, werden ausgeblendet. Fortfahren?")) return;
+    const erg = await aktion("pw_admin_import_rooms", { p_csv: text, p_ersetzen: ersetzen });
+    if (erg === undefined) return;
+    const mitBuchung = daten.raeume.filter((r) => r.versteckt && daten.buchungen.some((b) => b.room === r.nummer));
+    importHinweis = erg.importiert + " Räume übernommen" + (ersetzen ? ", " + erg.ausgeblendet + " ausgeblendet." : ".") +
+      (mitBuchung.length ? "|Ausgeblendet, aber mit Buchungen: " + mitBuchung.map((r) => r.nummer).join(", ") +
+        " – bitte in der Planung umbuchen oder wieder einblenden." : "");
+    meldung(erg.importiert + " Räume übernommen.");
+    renderAlles();
+  });
+  const reihe = el("div", "buttonreihe");
+  reihe.appendChild(imp);
+  reihe.appendChild(knopf("Aktuelle Liste als CSV exportieren", "zurueck", raeumeExportieren));
+  const reihe2 = el("div", "buttonreihe");
+  reihe2.appendChild(knopf("Alle Räume löschen …", "gefahr", () => loeschenOeffnen("raeume")));
+  kImp.append(ta, erkannt, datei, modus, erkl, reihe, reihe2);
+  if (importHinweis) {
+    const [a, b] = importHinweis.split("|");
+    kImp.appendChild(el("p", "hinweisbox info", a));
+    if (b) kImp.appendChild(el("p", "hinweisbox warnung", b));
+  }
+  oben.appendChild(kImp);
+
+  /* Neuer Raum + neue Gruppe */
+  const kNeu = karte("Raum anlegen", "Vierstellige Nummer (Trakt, Etage, Raum) – Trakt und Etage ergeben sich daraus.");
+  const fNr = input("", "z. B. 3208");
+  fNr.maxLength = 20;
+  const fBes = input("", "z. B. Computerraum");
+  fBes.maxLength = 80;
+  const z = el("div", "zeile");
+  const a = feldMitLabel("Nummer", fNr); a.className = "schmal";
+  z.append(a, feldMitLabel("Beschreibung (optional)", fBes));
+  kNeu.appendChild(z);
+
+  const neueGruppen = [];
+  if (daten.gruppen.length) {
+    const gl = el("div", "feldgruppe");
+    gl.appendChild(el("span", "label", "Raumgruppen (optional)"));
+    const reiheG = el("div", "filterreihe");
+    reiheG.style.marginTop = "0";
+    daten.gruppen.forEach((g) => {
+      const b = el("button", "filter klein", g.name);
+      b.type = "button";
+      b.setAttribute("aria-pressed", "false");
+      b.onclick = () => {
+        const i = neueGruppen.indexOf(g.id);
+        if (i >= 0) neueGruppen.splice(i, 1); else neueGruppen.push(g.id);
+        b.setAttribute("aria-pressed", String(i < 0));
+      };
+      reiheG.appendChild(b);
+    });
+    gl.appendChild(reiheG);
+    kNeu.appendChild(gl);
+  }
+
+  const r2 = el("div", "buttonreihe");
+  r2.appendChild(knopf("Raum anlegen", "", async () => {
+    const nr = fNr.value.trim();
+    if (!nr) { meldung("Bitte eine Raumnummer eingeben.", true); return; }
+    if (raumInfo(nr)) { meldung("Raum " + nr + " gibt es schon – unten zuordnen oder in der Liste bearbeiten.", true); return; }
+    try {
+      await admin("pw_admin_room_save", { p_nummer: nr, p_beschreibung: fBes.value.trim() || null, p_versteckt: false });
+      if (neueGruppen.length) await admin("pw_admin_room_groups_set", { p_room: nr, p_group_ids: neueGruppen });
+      await laden();
+      renderAlles();
+      meldung("Raum " + nr + " angelegt.");
+    } catch (e) { meldung(e.message, true); }
+  }));
+  kNeu.appendChild(r2);
+
+  kNeu.appendChild(el("hr", "trenner"));
+  kNeu.appendChild(el("h3", "abschnitt", "Raumgruppe anlegen"));
+  kNeu.appendChild(el("p", "abschnitt-hinweis", "Ein Merkmal wie „Musikräume“ oder „Fachräume NW“, das du danach Räumen zuordnest."));
+  const zG = el("div", "zeile");
+  const fG = input("", "z. B. Musikräume");
+  fG.maxLength = 60;
+  const wG = el("div"); wG.appendChild(fG);
+  const bG = knopf("Gruppe anlegen", "", async () => {
+    const name = fG.value.trim();
+    if (!name) { meldung("Bitte einen Namen für die Gruppe eingeben.", true); return; }
+    if (daten.gruppen.some((g) => g.name.toLowerCase() === name.toLowerCase())) { meldung("Diese Gruppe gibt es schon.", true); return; }
+    const id = await aktion("pw_admin_group_save", { p_name: name }, "Gruppe „" + name + "“ angelegt – jetzt unten Räume zuordnen.");
+    if (id !== undefined && typeof id === "number") { ansicht.raeume.zuordnung = id; renderAlles(); }
+  });
+  bG.style.flex = "0 0 auto";
+  fG.onkeydown = (e) => { if (e.key === "Enter") bG.click(); };
+  zG.append(wG, bG);
+  kNeu.appendChild(zG);
+  oben.appendChild(kNeu);
+  ziel.appendChild(oben);
+
+  /* Räume einer Gruppe zuordnen */
+  if (daten.gruppen.length) {
+    const vz = ansicht.raeume;
+    if (!daten.gruppen.some((g) => g.id === vz.zuordnung)) vz.zuordnung = daten.gruppen[0].id;
+    const kZ = karte("Räume einer Gruppe zuordnen", "Gruppe wählen, dann Räume anklicken. Markierte Räume gehören zur Gruppe – ein zweiter Klick nimmt sie wieder heraus.");
+    const sG = auswahl(daten.gruppen.map((g) => [g.id, g.name]), vz.zuordnung);
+    sG.style.maxWidth = "360px";
+    sG.onchange = () => { vz.zuordnung = Number(sG.value); renderAlles(); };
+    kZ.appendChild(feldMitLabel("Gruppe", sG));
+
+    const mitglieder = new Set(daten.raumGruppen.filter((x) => x.group_id === vz.zuordnung).map((x) => x.room));
+    const nachGebaeude = new Map();
+    daten.raeume.filter((r) => !r.ist_exkursion).sort(vergleichRaum).forEach((r) => {
+      const s2 = r.trakt === null ? "9" : String(r.trakt);
+      if (!nachGebaeude.has(s2)) nachGebaeude.set(s2, []);
+      nachGebaeude.get(s2).push(r);
+    });
+    [...nachGebaeude.keys()].sort().forEach((s2) => {
+      const blk = el("div", "feldgruppe");
+      blk.appendChild(el("span", "label", s2 === "9" ? "Weitere Räume" : "Trakt " + s2));
+      const reiheR = el("div", "filterreihe");
+      reiheR.style.marginTop = "0";
+      reiheR.style.gap = "6px";
+      nachGebaeude.get(s2).forEach((r) => {
+        const b = el("button", "filter klein", r.nummer + (r.beschreibung ? " · " + r.beschreibung : ""));
+        b.type = "button";
+        b.setAttribute("aria-pressed", String(mitglieder.has(r.nummer)));
+        if (r.versteckt) { b.style.opacity = ".55"; b.title = "ausgeblendet"; }
+        b.onclick = () => {
+          const ids = gruppenVon(r.nummer);
+          const neu = ids.includes(vz.zuordnung) ? ids.filter((x) => x !== vz.zuordnung) : ids.concat(vz.zuordnung);
+          aktion("pw_admin_room_groups_set", { p_room: r.nummer, p_group_ids: neu });
+        };
+        reiheR.appendChild(b);
+      });
+      blk.appendChild(reiheR);
+      kZ.appendChild(blk);
+    });
+    kZ.appendChild(el("p", "abschnitt-hinweis", mitglieder.size + (mitglieder.size === 1 ? " Raum" : " Räume") + " in dieser Gruppe."));
+    ziel.appendChild(kZ);
+  }
+
+  /* Liste */
+  const v = ansicht.raeume;
+  const kL = karte("Alle Räume");
+  const steuer = el("div", "zeile");
+  const suche = input(v.suche, "Raum suchen …", "search");
+  const sb = el("div"); sb.appendChild(suche);
+  const sch = el("label", "schalter");
+  sch.style.flex = "0 0 auto"; sch.style.alignItems = "center";
+  const cb = input(null, null, "checkbox");
+  cb.checked = v.versteckte;
+  sch.append(cb, document.createTextNode("Ausgeblendete zeigen"));
+  steuer.append(sb, sch);
+  kL.appendChild(steuer);
+
+  const huelle = el("div", "tabellenhuelle");
+  huelle.style.marginTop = "16px";
+  kL.appendChild(huelle);
+  ziel.appendChild(kL);
+
+  const zeichne = () => {
+    const q = v.suche.trim().toLowerCase();
+    const liste = daten.raeume.slice().sort(vergleichRaum).filter((r) =>
+      (v.versteckte || !r.versteckt) &&
+      (!q || (r.nummer + " " + (r.beschreibung || "")).toLowerCase().includes(q)));
+    const t = el("table", "tabelle");
+    t.innerHTML = "<thead><tr><th>Nr.</th><th>Lage</th><th>Beschreibung</th><th>Gruppen</th><th>Buchungen</th><th>Sichtbar</th><th></th></tr></thead>";
+    const tb = el("tbody");
+    liste.forEach((r) => {
+      const tr = el("tr", r.versteckt ? "versteckt" : "");
+      const anz = daten.buchungen.filter((b) => b.room === r.nummer).length;
+
+      const tdNr = el("td", "nr", r.ist_exkursion ? "Exkursion" : r.nummer);
+      const tdLage = el("td", "leise", r.ist_exkursion ? "–" : r.trakt === null ? "–" : "Trakt " + r.trakt + ", " + etageText(r.etage));
+
+      const tdBes = el("td");
+      if (r.ist_exkursion) tdBes.appendChild(el("span", "leise", "für Projekte außer Haus"));
+      else {
+        const f = input(r.beschreibung || "", "–");
+        f.maxLength = 80;
+        f.setAttribute("aria-label", "Beschreibung von Raum " + r.nummer);
+        f.onchange = () => aktion("pw_admin_room_save",
+          { p_nummer: r.nummer, p_beschreibung: f.value.trim() || null, p_versteckt: r.versteckt }, "Beschreibung gespeichert.");
+        tdBes.appendChild(f);
+      }
+
+      const tdGr = el("td");
+      if (!r.ist_exkursion && daten.gruppen.length) {
+        const ids = gruppenVon(r.nummer);
+        const reiheG = el("div", "filterreihe");
+        reiheG.style.margin = "0"; reiheG.style.gap = "5px"; reiheG.style.alignItems = "center";
+        daten.gruppen.filter((g) => ids.includes(g.id)).forEach((g) => {
+          const b = el("button", "filter klein", g.name + "  ×");
+          b.type = "button";
+          b.setAttribute("aria-pressed", "true");
+          b.title = "Aus der Gruppe „" + g.name + "“ entfernen";
+          b.onclick = () => aktion("pw_admin_room_groups_set", { p_room: r.nummer, p_group_ids: ids.filter((x) => x !== g.id) });
+          reiheG.appendChild(b);
+        });
+        const frei = daten.gruppen.filter((g) => !ids.includes(g.id));
+        if (frei.length) {
+          const sel = auswahl([["", "＋ Gruppe"]].concat(frei.map((g) => [g.id, g.name])), "");
+          sel.style.width = "auto";
+          sel.style.padding = "3px 6px";
+          sel.style.fontSize = "12.5px";
+          sel.setAttribute("aria-label", "Raum " + r.nummer + " einer Gruppe zuordnen");
+          sel.onchange = () => {
+            if (!sel.value) return;
+            aktion("pw_admin_room_groups_set", { p_room: r.nummer, p_group_ids: ids.concat(Number(sel.value)) });
+          };
+          reiheG.appendChild(sel);
+        }
+        tdGr.appendChild(reiheG);
+      }
+
+      const tdAnz = el("td", "", anz ? String(anz) : "–");
+
+      const tdSicht = el("td");
+      if (!r.ist_exkursion) {
+        const b = knopf(r.versteckt ? "ausgeblendet" : "sichtbar", "zurueck mini", () =>
+          aktion("pw_admin_room_hide", { p_nummer: r.nummer, p_versteckt: !r.versteckt },
+            r.versteckt ? "Raum eingeblendet." : "Raum ausgeblendet."));
+        if (r.versteckt) b.style.color = "var(--rot)";
+        tdSicht.appendChild(b);
+      }
+
+      const tdWeg = el("td");
+      if (!r.ist_exkursion) {
+        const b = knopf("Löschen", "gefahr mini", async () => {
+          if (!confirm("Raum " + r.nummer + " endgültig löschen?")) return;
+          await aktion("pw_admin_room_delete", { p_nummer: r.nummer }, "Raum gelöscht.");
+        });
+        if (anz) { b.disabled = true; b.title = "Raum hat noch Buchungen – erst umplanen"; }
+        tdWeg.appendChild(b);
+      }
+
+      tr.append(tdNr, tdLage, tdBes, tdGr, tdAnz, tdSicht, tdWeg);
+      tb.appendChild(tr);
+    });
+    if (!liste.length) {
+      const tr = el("tr");
+      const td = el("td", "leise", daten.raeume.length > 1 ? "Keine Treffer." : "Noch keine Räume – oben importieren oder anlegen.");
+      td.colSpan = 7;
+      tr.appendChild(td);
+      tb.appendChild(tr);
+    }
+    t.appendChild(tb);
+    huelle.innerHTML = "";
+    huelle.appendChild(t);
+  };
+  suche.oninput = () => { v.suche = suche.value; zeichne(); };
+  cb.onchange = () => { v.versteckte = cb.checked; zeichne(); };
+  zeichne();
+}
+
+/* Liest Raumlisten in vielen Formen: Nummer;Beschreibung, Tab (aus Excel kopiert),
+   Komma, mit Anführungszeichen, mit Kopfzeile, oder „NW1 3117“ bzw. „3117 NW1“. */
+function raumZeilen(text) {
+  const ergebnis = [];
+  const gesehen = new Set();
+  String(text || "").replace(/^\uFEFF/, "").split(/\r?\n/).forEach((zeile) => {
+    zeile = zeile.trim();
+    if (!zeile) return;
+    let teile = zeile.includes(";") ? zeile.split(";")
+      : zeile.includes("\t") ? zeile.split("\t")
+      : zeile.includes(",") ? zeile.split(",") : [zeile];
+    teile = teile.map((t) => t.trim().replace(/^"(.*)"$/, "$1").replace(/""/g, '"').trim());
+    let nr = teile[0] || "", bes = (teile[1] || "").replace(/;/g, ",");
+    if (!nr || /^(raum|raumnummer|nummer|nr\.?)$/i.test(nr)) return;
+    nr = nr.replace(/^(\d+)[.,]0+$/, "$1");                 /* 3105.0 aus Excel */
+    if (teile.length === 1) {
+      let m = nr.match(/^(\d{4})\s+(.+)$/);
+      if (m) { nr = m[1]; bes = m[2]; }
+      else if ((m = nr.match(/^(.+?)\s+(\d{4})$/))) { nr = m[2]; bes = m[1]; }
+    }
+    if (gesehen.has(nr)) return;
+    gesehen.add(nr);
+    ergebnis.push([nr, bes]);
+  });
+  return ergebnis;
+}
+
+function raeumeExportieren() {
+  const zeilen = ["Nummer;Beschreibung;Gruppen;Ausgeblendet"];
+  daten.raeume.filter((r) => !r.ist_exkursion).sort(vergleichRaum).forEach((r) => {
+    const gruppen = gruppenVon(r.nummer)
+      .map((id) => (daten.gruppen.find((g) => g.id === id) || {}).name).filter(Boolean).join(", ");
+    zeilen.push([r.nummer, r.beschreibung || "", gruppen, r.versteckt ? "ja" : ""]
+      .map((x) => String(x).replace(/[;\r\n]/g, " ")).join(";"));
+  });
+  const blob = new Blob(["\uFEFF" + zeilen.join("\r\n") + "\r\n"], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "raumliste_projektwoche_" + new Date().toISOString().slice(0, 10) + ".csv";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  meldung((zeilen.length - 1) + " Räume exportiert.");
+}
+
+/* =========================================================
+   6b · Lehrkräfte
+   ========================================================= */
+
+const lv = { tage: [1, 2, 3, 4, 5], filter: "alle", suche: "", sort: "name" };
+let lehrerAlt = null;
+
+const kkey = (k) => String(k || "").trim().toLowerCase();
+
+function kuerzelTokens(text) {
+  return String(text || "").split(/[,;\/+&]|\s+und\s+|\s+/i).map(kkey).filter(Boolean);
+}
+
+function lehrerVon(k) {
+  return (daten.lehrer || []).find((l) => l.kkey === kkey(k));
+}
+
+function lehrerName(k) {
+  const l = lehrerVon(k);
+  return l ? [l.vorname, l.nachname].filter(Boolean).join(" ") : "";
+}
+
+/* Wer ist an welchem Tag in welchen Stunden eingesetzt (Projektleitung und Mithelfende, geplant) */
+function einsatzIndex() {
+  const idx = new Map();
+  const eintrag = (k, t) => {
+    if (!idx.has(k)) idx.set(k, { tage: {} });
+    const e = idx.get(k);
+    if (!e.tage[t]) e.tage[t] = { std: new Set(), liste: [], krank: false, vertritt: [] };
+    return e.tage[t];
+  };
+  daten.buchungen.forEach((b) => {
+    const p = projektVon(b.project_id);
+    if (!p) return;
+    [kkey(p.kuerzel)].concat(kuerzelTokens(p.mitwirkende)).forEach((k, i) => {
+      const d = eintrag(k, b.tag);
+      for (let s = b.std_von; s <= b.std_bis; s++) d.std.add(s);
+      d.liste.push({ b, p, rolle: i === 0 ? "Leitung" : "Mithilfe" });
+      if (b.krank && i === 0) d.krank = true;
+    });
+    if (b.krank && b.vertretung) kuerzelTokens(b.vertretung).forEach((k) => eintrag(k, b.tag).vertritt.push({ b, p }));
+  });
+  return idx;
+}
+
+function lehrerSoll(l) {
+  const voll = Number(daten.lehrerSoll.voll_stunden) || 25.5;
+  const pw = Number(daten.lehrerSoll.pw_stunden) || 25;
+  const st = l && l.stunden !== null && l.stunden !== undefined && l.stunden !== "" ? Number(l.stunden) : voll;
+  return Math.round(st / voll * pw * 2) / 2;
+}
+
+function zahlDe(n) {
+  return Number(n).toLocaleString("de-DE", { maximumFractionDigits: 2 });
+}
+
+/* ---------- Vorschläge für Vertretungen ---------- */
+function vertretungVorschlaege(tag, ausser) {
+  const dl = $("dlVertretung");
+  dl.innerHTML = "";
+  const idx = einsatzIndex();
+  const ohne = new Set(kuerzelTokens(ausser));
+  const zeilen = (daten.lehrer || []).filter((l) => !ohne.has(l.kkey)).map((l) => {
+    const d = (idx.get(l.kkey) || { tage: {} }).tage[tag];
+    let info, rang;
+    if (!d || (!d.std.size && !d.vertritt.length)) { info = "frei"; rang = 0; }
+    else if (d.krank) { info = "selbst krank gemeldet"; rang = 3; }
+    else if (d.vertritt.length) { info = "vertritt bereits " + d.vertritt.map((x) => x.p.kuerzel).join(", "); rang = 2; }
+    else {
+      const frei = [2, 3, 4, 5, 6].filter((s) => !d.std.has(s));
+      info = frei.length ? "teilweise frei (" + frei.join(".,") + ". Std.)" : "eingesetzt: " + d.liste.map((x) => ortText(x.b)).join(", ");
+      rang = frei.length ? 1 : 2;
+    }
+    return { l, info, rang };
+  }).sort((a, b) => a.rang - b.rang || (a.l.nachname || "").localeCompare(b.l.nachname || "", "de"));
+  zeilen.forEach(({ l, info }) => {
+    const o = document.createElement("option");
+    o.value = l.kuerzel;
+    o.label = [l.vorname, l.nachname].filter(Boolean).join(" ") + " · " + info;
+    dl.appendChild(o);
+  });
+}
+
+function vertretungsFeld(inputEl, tag, ausser) {
+  inputEl.setAttribute("list", "dlVertretung");
+  inputEl.setAttribute("autocomplete", "off");
+  inputEl.addEventListener("focus", () => vertretungVorschlaege(tag, ausser));
+  /* Ganzer Name getippt? Dann Kürzel einsetzen */
+  inputEl.addEventListener("change", () => {
+    const v = inputEl.value.trim().toLowerCase();
+    if (!v || lehrerVon(v)) return;
+    const treffer = (daten.lehrer || []).filter((l) =>
+      [l.vorname + " " + l.nachname, l.nachname + " " + l.vorname, l.nachname, l.nachname + ", " + l.vorname]
+        .some((n) => String(n).toLowerCase() === v));
+    if (treffer.length === 1) inputEl.value = treffer[0].kuerzel;
+  }, true);
+}
+
+/* ---------- Import / Export ---------- */
+function csvTeile(zeile, trenner) {
+  const teile = [];
+  let feld = "", inQ = false;
+  for (let i = 0; i < zeile.length; i++) {
+    const c = zeile[i];
+    if (inQ) {
+      if (c === '"' && zeile[i + 1] === '"') { feld += '"'; i++; }
+      else if (c === '"') inQ = false;
+      else feld += c;
+    } else if (c === '"') inQ = true;
+    else if (c === trenner) { teile.push(feld.trim()); feld = ""; }
+    else feld += c;
+  }
+  teile.push(feld.trim());
+  return teile;
+}
+
+function lehrerZeilen(text) {
+  const zeilen = String(text || "").replace(/^﻿/, "").split(/\r?\n/).filter((z) => z.trim());
+  const erg = { lehrer: [], uebersprungen: 0 };
+  if (!zeilen.length) return erg;
+  const erste = zeilen[0];
+  const trenner = erste.includes("\t") ? "\t" : erste.includes(";") ? ";" : ",";
+  const kopf = csvTeile(erste, trenner).map((x) => x.toLowerCase().replace(/[^a-zäöüß]/g, ""));
+  const finde = (namen) => kopf.findIndex((h) => namen.includes(h));
+  let iK = finde(["kürzel", "kuerzel", "kurzname", "kurz", "name"]);
+  let iN = finde(["nachname", "longname", "familienname"]);
+  let iV = finde(["vorname", "forename", "firstname"]);
+  let iS = finde(["stunden", "stundenverpflichtung", "verpflichtung", "deputat", "soll", "regelstunden"]);
+  let start = 1;
+  if (iK < 0 || (iN < 0 && iV < 0)) { iN = 0; iV = 1; iK = 2; iS = 3; start = 0; }   /* ohne Kopfzeile: Nachname;Vorname;Kürzel;Stunden */
+  const gesehen = new Set();
+  zeilen.slice(start).forEach((z) => {
+    const t = csvTeile(z, trenner);
+    const k = (t[iK] || "").trim();
+    const v = iV >= 0 ? (t[iV] || "").trim() : "";
+    const n = iN >= 0 ? (t[iN] || "").trim() : "";
+    if (!k || !v || gesehen.has(kkey(k))) { erg.uebersprungen++; return; }   /* ohne Vorname = keine Person (Dummy, FSJ, Mensa …) */
+    gesehen.add(kkey(k));
+    const sRoh = iS >= 0 ? String(t[iS] || "").trim().replace(",", ".") : "";
+    const s = sRoh === "" || isNaN(Number(sRoh)) ? null : Number(sRoh);
+    erg.lehrer.push({ kuerzel: k, vorname: v, nachname: n, stunden: s });
+  });
+  return erg;
+}
+
+function lehrerExportieren() {
+  const zeilen = ["Nachname;Vorname;Kürzel;Stundenverpflichtung"];
+  (daten.lehrer || []).slice().sort((a, b) => (a.nachname || "").localeCompare(b.nachname || "", "de")).forEach((l) => {
+    zeilen.push([l.nachname || "", l.vorname || "", l.kuerzel,
+      l.stunden === null || l.stunden === undefined ? "" : String(l.stunden).replace(".", ",")]
+      .map((x) => String(x).replace(/[;\r\n]/g, " ")).join(";"));
+  });
+  const blob = new Blob(["﻿" + zeilen.join("\r\n") + "\r\n"], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "lehrkraefte_projektwoche_" + new Date().toISOString().slice(0, 10) + ".csv";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  meldung((zeilen.length - 1) + " Lehrkräfte exportiert.");
+}
+
+/* ---------- Reiter ---------- */
+function renderLehrer(ziel) {
+  if (daten.lehrerFehlt) {
+    const k = karte("Lehrkräfte");
+    k.appendChild(el("p", "hinweisbox warnung", "Die Lehrkräfte-Funktionen fehlen noch in Supabase. Bitte zuerst Schritt 9 (projektwoche_schritt9_lehrkraefte.sql) ausführen und die Seite neu laden."));
+    ziel.appendChild(k);
+    return;
+  }
+  const idx = einsatzIndex();
+  const lehrer = daten.lehrer || [];
+
+  /* --- Einsatzübersicht --- */
+  const k = karte("Einsatz der Lehrkräfte", "Stunden pro Tag aus Projektleitung und Mithilfe (geplant). Soll = Stundenverpflichtung im Verhältnis zur vollen Stelle, umgerechnet auf die Projektwoche.");
+  if (!lehrer.length) {
+    k.appendChild(el("p", "hinweisbox info", "Noch keine Lehrkräfte importiert – unten bei „Lehrerliste pflegen“ die Liste einlesen."));
+  }
+
+  const tagReihe = el("div", "filterreihe");
+  tagReihe.style.marginTop = "0";
+  [1, 2, 3, 4, 5].forEach((t) => {
+    const b = el("button", "filter", TAGE_KURZ[t] + (datum(t) ? " " + datum(t).slice(0, 6) : ""));
+    b.type = "button";
+    b.setAttribute("aria-pressed", String(lv.tage.includes(t)));
+    b.onclick = () => {
+      lv.tage = lv.tage.includes(t) ? lv.tage.filter((x) => x !== t) : lv.tage.concat(t).sort();
+      if (!lv.tage.length) lv.tage = [t];
+      renderAlles();
+    };
+    tagReihe.appendChild(b);
+  });
+  const alleB = el("button", "filter", "Alle Tage");
+  alleB.type = "button";
+  alleB.setAttribute("aria-pressed", String(lv.tage.length === 5));
+  alleB.onclick = () => { lv.tage = [1, 2, 3, 4, 5]; renderAlles(); };
+  tagReihe.appendChild(alleB);
+  const wb = el("div", "feldgruppe");
+  wb.style.marginTop = "0";
+  wb.append(el("span", "label", "Tage"), tagReihe);
+  k.appendChild(wb);
+
+  const z = el("div", "zeile feldgruppe");
+  const sF = auswahl([["alle", "Alle Lehrkräfte"], ["ohne", "Ohne Eintrag an den gewählten Tagen"], ["mit", "Mit Eintrag an den gewählten Tagen"],
+    ["unter", "Unter Soll (Woche)"], ["ueber", "Über Soll (Woche)"], ["krank", "Krank an den gewählten Tagen"]], lv.filter);
+  sF.onchange = () => { lv.filter = sF.value; zeichne(); };
+  const sS = auswahl([["name", "Nachname"], ["kuerzel", "Kürzel"], ["ist", "Stunden (wenig zuerst)"], ["diff", "Abweichung vom Soll"]], lv.sort);
+  sS.onchange = () => { lv.sort = sS.value; zeichne(); };
+  const fS = input(lv.suche, "Kürzel oder Name …", "search");
+  fS.oninput = () => { lv.suche = fS.value; zeichne(); };
+  z.append(feldMitLabel("Anzeigen", sF), feldMitLabel("Sortieren", sS), feldMitLabel("Suche", fS));
+  k.appendChild(z);
+
+  const info = el("p", "abschnitt-hinweis");
+  info.style.margin = "14px 0 8px";
+  const huelle = el("div", "tabellenhuelle");
+  const rDruck = el("div", "buttonreihe");
+  rDruck.appendChild(knopf("Liste drucken / PDF", "zurueck", () => {
+    $("druck").innerHTML = '<div class="d-seite"><h1>Einsatz der Lehrkräfte · ' + esc(wochenText()) + "</h1>" +
+      '<p class="d-unter">' + esc(info.textContent) + " · " + stand() + "</p>" +
+      huelle.innerHTML.replace('class="tabelle"', 'class="d-tabelle"') + "</div>";
+    $("seitenstil").textContent = "@page { size: A4 landscape; margin: 12mm; }";
+    drucken("Projektwoche_Einsatz_Lehrkraefte");
+  }));
+  k.append(info, huelle, rDruck);
+
+  /* Kürzel in Projekten, die nicht in der Liste stehen */
+  if (lehrer.length) {
+    const unbekannt = [...idx.keys()].filter((x) => !lehrerVon(x));
+    if (unbekannt.length) {
+      k.appendChild(el("p", "hinweisbox warnung", "Diese Kürzel stehen in Projekten, aber nicht in der Lehrerliste (Tippfehler?): " +
+        unbekannt.map((x) => {
+          const p = daten.projekte.find((pp) => kkey(pp.kuerzel) === x || kuerzelTokens(pp.mitwirkende).includes(x));
+          return x + (p ? " („" + p.thema + "“)" : "");
+        }).join(", ")));
+    }
+  }
+  ziel.appendChild(k);
+
+  function zeichne() {
+    const q = lv.suche.trim().toLowerCase();
+    const zeilen = lehrer.map((l) => {
+      const e = idx.get(l.kkey) || { tage: {} };
+      const proTag = {};
+      let ist = 0;
+      for (let t = 1; t <= 5; t++) {
+        const d = e.tage[t];
+        proTag[t] = d ? d.std.size : 0;
+        ist += proTag[t];
+      }
+      const soll = lehrerSoll(l);
+      const gewMit = lv.tage.filter((t) => proTag[t] > 0).length;
+      const krank = lv.tage.some((t) => e.tage[t] && e.tage[t].krank);
+      return { l, e, proTag, ist, soll, diff: ist - soll, gewMit, krank };
+    }).filter((x) => {
+      if (q && !(x.l.kuerzel + " " + (x.l.vorname || "") + " " + (x.l.nachname || "")).toLowerCase().includes(q)) return false;
+      if (lv.filter === "ohne") return x.gewMit < lv.tage.length;
+      if (lv.filter === "mit") return x.gewMit > 0;
+      if (lv.filter === "unter") return x.diff < 0;
+      if (lv.filter === "ueber") return x.diff > 0;
+      if (lv.filter === "krank") return x.krank;
+      return true;
+    }).sort((a, b) => {
+      if (lv.sort === "kuerzel") return a.l.kuerzel.localeCompare(b.l.kuerzel, "de");
+      if (lv.sort === "ist") return a.ist - b.ist || (a.l.nachname || "").localeCompare(b.l.nachname || "", "de");
+      if (lv.sort === "diff") return a.diff - b.diff;
+      return (a.l.nachname || "").localeCompare(b.l.nachname || "", "de") || (a.l.vorname || "").localeCompare(b.l.vorname || "", "de");
+    });
+
+    const t = el("table", "tabelle");
+    let h = "<thead><tr><th>Kürzel</th><th>Name</th><th>Verpfl.</th>";
+    for (let d = 1; d <= 5; d++) h += "<th" + (lv.tage.includes(d) ? ' style="color:var(--indigo)"' : "") + ">" + TAGE_KURZ[d] + "</th>";
+    h += "<th>Ist</th><th>Soll</th><th>±</th></tr></thead><tbody>";
+    zeilen.forEach((x) => {
+      h += '<tr class="klickbar" data-k="' + esc(x.l.kkey) + '"><td class="nr">' + esc(x.l.kuerzel) + "</td><td>" +
+        esc([x.l.nachname, x.l.vorname].filter(Boolean).join(", ")) + "</td><td>" +
+        (x.l.stunden === null || x.l.stunden === undefined ? '<span class="leise">voll</span>' : zahlDe(x.l.stunden)) + "</td>";
+      for (let d = 1; d <= 5; d++) {
+        const tg = x.e.tage[d];
+        const titel = tg ? tg.liste.map((y) => y.rolle + ": " + y.p.thema + " (" + ortText(y.b) + ")").join(" | ") +
+          (tg.vertritt.length ? " | Vertretung für " + tg.vertritt.map((y) => y.p.kuerzel).join(", ") : "") : "";
+        const leerMarkiert = lv.tage.includes(d) && !x.proTag[d];
+        h += '<td title="' + esc(titel) + '"' + (leerMarkiert ? ' style="background:#fdf0ef"' : "") + ">" +
+          (x.proTag[d] ? x.proTag[d] + (tg.krank ? ' <span class="krankmarke">k</span>' : "") : '<span class="leise">–</span>') +
+          (tg && tg.vertritt.length ? ' <span class="leise">+V</span>' : "") + "</td>";
+      }
+      const farbe = x.diff < 0 ? "var(--rot)" : x.diff > 0 ? "var(--gruen)" : "var(--tinte-leise)";
+      h += "<td><b>" + zahlDe(x.ist) + "</b></td><td>" + zahlDe(x.soll) + '</td><td style="color:' + farbe + ';font-weight:700">' +
+        (x.diff > 0 ? "+" : "") + zahlDe(x.diff) + "</td></tr>";
+    });
+    if (!zeilen.length) h += '<tr><td colspan="11" class="leise">Keine Lehrkräfte für diese Auswahl.</td></tr>';
+    t.innerHTML = h + "</tbody>";
+    huelle.innerHTML = "";
+    huelle.appendChild(t);
+    t.querySelectorAll("tr.klickbar").forEach((tr) => { tr.onclick = () => lehrerOeffnen(tr.dataset.k); });
+    const tageText = lv.tage.length === 5 ? "alle Tage" : lv.tage.map((d) => TAGE_KURZ[d]).join(", ");
+    const ohne = lehrer.filter((l) => {
+      const e = idx.get(l.kkey);
+      return lv.tage.some((d) => !(e && e.tage[d] && e.tage[d].std.size));
+    }).length;
+    info.textContent = zeilen.length + " von " + lehrer.length + " Lehrkräften angezeigt · " + ohne +
+      " ohne Eintrag an mindestens einem gewählten Tag (" + tageText + ")";
+  }
+  zeichne();
+
+  /* --- Pflege --- */
+  const raster = el("div", "raster2");
+  raster.style.marginBottom = "22px";
+
+  const kImp = karte("Lehrerliste pflegen", "Import aus Untis (Spalten name, longName, foreName) oder aus der eigenen Exportdatei (Nachname;Vorname;Kürzel;Stundenverpflichtung). Übernommen werden nur Kürzel, Vor- und Nachname sowie Stunden. Zeilen ohne Vorname (Dummy, FSJ, Mensa …) werden übersprungen.");
+  const ta = el("textarea", "feld");
+  ta.placeholder = "Nachname;Vorname;Kürzel;Stundenverpflichtung\nHähne;Thomas;Hä;25,5";
+  const erkannt = el("p", "abschnitt-hinweis");
+  erkannt.style.margin = "8px 0 0";
+  const zeigeErkannt = () => {
+    const e = lehrerZeilen(ta.value);
+    erkannt.textContent = ta.value.trim() ? e.lehrer.length + " Lehrkräfte erkannt" + (e.uebersprungen ? ", " + e.uebersprungen + " Zeilen übersprungen" : "") + "." : "";
+  };
+  ta.oninput = zeigeErkannt;
+  const datei = input(null, null, "file");
+  datei.accept = ".csv,.txt,text/csv,text/plain";
+  datei.style.marginTop = "10px";
+  datei.onchange = async () => {
+    const f = datei.files[0];
+    if (!f) return;
+    const roh = await f.arrayBuffer();
+    let text;
+    try { text = new TextDecoder("utf-8", { fatal: true }).decode(roh); }
+    catch (e) { text = new TextDecoder("windows-1252").decode(roh); }
+    ta.value = text.replace(/^﻿/, "");
+    zeigeErkannt();
+  };
+  let ersetzen = false;
+  const modus = el("div", "filterreihe");
+  const erkl = el("p", "abschnitt-hinweis");
+  erkl.style.margin = "8px 0 0";
+  const zeichneModus = () => {
+    modus.innerHTML = "";
+    [[false, "Ergänzen"], [true, "Ersetzen"]].forEach(([w, t]) => {
+      const b = el("button", "filter", t);
+      b.type = "button";
+      b.setAttribute("aria-pressed", String(ersetzen === w));
+      b.onclick = () => { ersetzen = w; zeichneModus(); };
+      modus.appendChild(b);
+    });
+    erkl.textContent = ersetzen ? "Ersetzen: Lehrkräfte, die nicht in der Liste stehen, werden gelöscht."
+      : "Ergänzen: Neue kommen hinzu, vorhandene (gleiches Kürzel, Groß-/Kleinschreibung egal) werden aktualisiert.";
+  };
+  zeichneModus();
+  const r1 = el("div", "buttonreihe");
+  r1.appendChild(knopf("Importieren", "", async () => {
+    const e = lehrerZeilen(ta.value);
+    if (!e.lehrer.length) { meldung("Keine Lehrkräfte erkannt.", true); return; }
+    if (ersetzen && !confirm("Alle Lehrkräfte, die nicht in der Liste stehen, werden gelöscht. Fortfahren?")) return;
+    const erg = await aktion("pw_admin_import_lehrer", { p_daten: e.lehrer, p_ersetzen: ersetzen });
+    if (erg !== undefined) meldung(erg.importiert + " Lehrkräfte übernommen" + (erg.geloescht ? ", " + erg.geloescht + " gelöscht." : "."));
+  }));
+  r1.appendChild(knopf("Aktuelle Liste als CSV exportieren", "zurueck", lehrerExportieren));
+  const r2 = el("div", "buttonreihe");
+  r2.appendChild(knopf("Alle Lehrkräfte löschen …", "gefahr", async () => {
+    if (!confirm("Alle " + lehrer.length + " Lehrkräfte aus der Liste löschen? Projekte bleiben erhalten.")) return;
+    await aktion("pw_admin_lehrer_delete_all", {}, "Lehrerliste gelöscht.");
+  }));
+  kImp.append(ta, erkannt, datei, modus, erkl, r1, r2);
+  raster.appendChild(kImp);
+
+  const kNeu = karte("Lehrkraft anlegen", "Zum Bearbeiten oder Löschen eine Zeile in der Übersicht oben anklicken.");
+  const fN = input("", "Nachname"), fV = input("", "Vorname"), fK = input("", "z. B. Hä"), fS2 = input("", "leer = volle Stelle");
+  fK.maxLength = 10; fS2.inputMode = "decimal";
+  const zN = el("div", "zeile");
+  zN.append(feldMitLabel("Nachname", fN), feldMitLabel("Vorname", fV));
+  const zK = el("div", "zeile feldgruppe");
+  const kk = feldMitLabel("Kürzel", fK); kk.className = "schmal";
+  zK.append(kk, feldMitLabel("Stundenverpflichtung", fS2));
+  const r3 = el("div", "buttonreihe");
+  r3.appendChild(knopf("Anlegen", "", async () => {
+    if (!fK.value.trim() || !fN.value.trim()) { meldung("Kürzel und Nachname sind nötig.", true); return; }
+    if (lehrerVon(fK.value)) { meldung("Das Kürzel gibt es schon.", true); return; }
+    const st = kostenZahl(fS2.value);
+    if (isNaN(st)) { meldung("Bitte bei den Stunden eine Zahl eingeben.", true); return; }
+    await aktion("pw_admin_lehrer_save", { p_alt: null, p_kuerzel: fK.value.trim(), p_vorname: fV.value.trim(),
+      p_nachname: fN.value.trim(), p_stunden: fS2.value.trim() ? st : null }, "Lehrkraft angelegt.");
+  }));
+  kNeu.append(zN, zK, r3);
+
+  kNeu.appendChild(el("hr", "trenner"));
+  kNeu.appendChild(el("h3", "abschnitt", "Soll-Berechnung"));
+  kNeu.appendChild(el("p", "abschnitt-hinweis", "Soll in der Projektwoche = Stundenverpflichtung ÷ volle Stelle × Stunden bei voller Stelle (auf halbe Stunden gerundet). Ohne Eintrag gilt die volle Stelle."));
+  const fVoll = input(zahlDe(daten.lehrerSoll.voll_stunden || 25.5), "25,5");
+  const fPw = input(zahlDe(daten.lehrerSoll.pw_stunden || 25), "25");
+  fVoll.inputMode = fPw.inputMode = "decimal";
+  const zS = el("div", "zeile");
+  zS.append(feldMitLabel("Volle Stelle (Std./Woche)", fVoll), feldMitLabel("Projektwoche bei voller Stelle (Std.)", fPw));
+  const r4 = el("div", "buttonreihe");
+  r4.appendChild(knopf("Speichern", "", () => {
+    const a = kostenZahl(fVoll.value), b = kostenZahl(fPw.value);
+    if (!(a > 0) || !(b > 0)) { meldung("Bitte zwei Zahlen größer 0 eingeben.", true); return; }
+    aktion("pw_admin_set_soll", { p_voll: a, p_pw_stunden: b }, "Soll-Berechnung gespeichert.");
+  }));
+  kNeu.append(zS, r4);
+  raster.appendChild(kNeu);
+  ziel.appendChild(raster);
+}
+
+/* ---------- Dialog: Lehrkraft bearbeiten ---------- */
+function lehrerOeffnen(k) {
+  const l = lehrerVon(k);
+  if (!l) return;
+  lehrerAlt = l.kuerzel;
+  $("ldlTitel").textContent = l.kuerzel + " · " + [l.vorname, l.nachname].filter(Boolean).join(" ");
+  $("ldlNach").value = l.nachname || "";
+  $("ldlVor").value = l.vorname || "";
+  $("ldlK").value = l.kuerzel;
+  $("ldlStd").value = l.stunden === null || l.stunden === undefined ? "" : zahlDe(l.stunden);
+  const e = einsatzIndex().get(l.kkey);
+  const box = $("ldlEinsatz");
+  box.innerHTML = "";
+  for (let t = 1; t <= 5; t++) {
+    const d = e && e.tage[t];
+    const li = el("li");
+    li.innerHTML = '<span class="t">' + TAGE_KURZ[t] + "</span>" + (d && d.liste.length
+      ? d.liste.map((x) => esc(x.rolle + ": " + x.p.thema + " · " + ortText(x.b, true) + " · " + stundenText(x.b.std_von, x.b.std_bis)) +
+          (x.b.krank && x.rolle === "Leitung" ? ' <span class="krankmarke">krank' + (x.b.vertretung ? " → " + esc(x.b.vertretung) : "") + "</span>" : "")).join("<br>")
+      : '<span class="leise">kein Eintrag</span>') +
+      (d && d.vertritt.length ? '<br><span class="leise">Vertretung für ' + esc(d.vertritt.map((x) => x.p.kuerzel + " (" + x.p.thema + ")").join(", ")) + "</span>" : "");
+    box.appendChild(li);
+  }
+  $("lehrerDialog").showModal();
+}
+
+async function lehrerSpeichern() {
+  const st = $("ldlStd").value.trim();
+  const n = kostenZahl(st);
+  if (!$("ldlK").value.trim() || !$("ldlNach").value.trim()) { meldung("Kürzel und Nachname sind nötig.", true); return; }
+  if (st && (isNaN(n) || n < 0 || n > 40)) { meldung("Stunden zwischen 0 und 40 eingeben.", true); return; }
+  if (kkey($("ldlK").value) !== kkey(lehrerAlt) && lehrerVon($("ldlK").value)) { meldung("Das neue Kürzel gibt es schon.", true); return; }
+  const ok = await aktion("pw_admin_lehrer_save", { p_alt: lehrerAlt, p_kuerzel: $("ldlK").value.trim(), p_vorname: $("ldlVor").value.trim(),
+    p_nachname: $("ldlNach").value.trim(), p_stunden: st ? n : null }, "Lehrkraft gespeichert.");
+  if (ok !== undefined) $("lehrerDialog").close();
+}
+
+/* =========================================================
+   7 · Gruppen
+   ========================================================= */
+
+function renderGruppen(ziel) {
+  const k = karte("Raumgruppen", "Gruppen fassen Räume zusammen, z. B. „Fachräume Naturwissenschaften“. Zuordnen kannst du sie im Reiter Räume. Sie dienen als Filter bei der Buchung und bei den Aushängen.");
+  const z = el("div", "zeile");
+  const f = input("", "Name der neuen Gruppe");
+  f.maxLength = 60;
+  const box = el("div"); box.appendChild(f);
+  const b = knopf("Gruppe anlegen", "", async () => {
+    const name = f.value.trim();
+    if (!name) { meldung("Bitte einen Namen eingeben.", true); return; }
+    await aktion("pw_admin_group_save", { p_name: name }, "Gruppe angelegt.");
+  });
+  b.style.flex = "0 0 auto";
+  f.onkeydown = (e) => { if (e.key === "Enter") b.click(); };
+  z.append(box, b);
+  k.appendChild(z);
+
+  const huelle = el("div", "tabellenhuelle");
+  huelle.style.marginTop = "18px";
+  const t = el("table", "tabelle");
+  t.innerHTML = "<thead><tr><th>Gruppe</th><th>Räume</th><th></th></tr></thead>";
+  const tb = el("tbody");
+  daten.gruppen.forEach((g) => {
+    const raeume = daten.raumGruppen.filter((x) => x.group_id === g.id).map((x) => x.room)
+      .sort((a, c) => a.localeCompare(c, "de", { numeric: true }));
+    const tr = el("tr");
+    const td1 = el("td"); td1.appendChild(el("b", "", g.name));
+    const td2 = el("td", raeume.length ? "" : "leise", raeume.length ? raeume.join(", ") : "noch keine Räume zugeordnet");
+    const td3 = el("td");
+    td3.style.width = "1%";
+    td3.appendChild(knopf("Löschen", "gefahr mini", async () => {
+      if (!confirm("Gruppe „" + g.name + "“ löschen? Die Räume selbst bleiben erhalten.")) return;
+      await aktion("pw_admin_group_delete", { p_id: g.id }, "Gruppe gelöscht.");
+    }));
+    tr.append(td1, td2, td3);
+    tb.appendChild(tr);
+  });
+  if (!daten.gruppen.length) {
+    const tr = el("tr");
+    const td = el("td", "leise", "Noch keine Gruppen angelegt.");
+    td.colSpan = 3;
+    tr.appendChild(td);
+    tb.appendChild(tr);
+  }
+  t.appendChild(tb);
+  huelle.appendChild(t);
+  k.appendChild(huelle);
+  ziel.appendChild(k);
+}
+
+/* =========================================================
+   8 · Aushänge
+   ========================================================= */
+
+function renderExport(ziel) {
+  const v = ansicht.export;
+  if (v.art === "tag" && !v.tag) v.tag = 1;
+  if (v.art === "schild" && v.tag === -1) v.tag = 0;
+
+  const k = karte("Aushang erstellen", "Filter wählen, Vorschau prüfen, dann drucken oder im Druckdialog „Als PDF speichern“ wählen.");
+
+  const arten = el("div", "filterreihe");
+  arten.style.marginTop = "0";
+  [["liste", "Gesamtliste für Schüler"], ["schild", "Türschilder pro Raum"], ["tag", "Tagesplan Lehrkräfte"], ["leer", "Leere Räume"]].forEach(([w, t]) => {
+    const b = el("button", "filter", t);
+    b.type = "button";
+    b.setAttribute("aria-pressed", String(v.art === w));
+    b.onclick = () => { v.art = w; renderAlles(); };
+    arten.appendChild(b);
+  });
+  k.appendChild(arten);
+
+  const z = el("div", "zeile feldgruppe");
+  const klassen = [["alle", "Alle Klassen"], ["sek1", "Sek I (5–10)"], ["sek2", "Sek II (11–12)"]];
+  for (let i = 5; i <= 12; i++) klassen.push([String(i), "Klasse " + i]);
+  const sK = auswahl(klassen, v.klasse);
+  sK.onchange = () => { v.klasse = sK.value; vorschau(); };
+
+  const sG = auswahl([["", "Alle Räume"]].concat(daten.gruppen.map((g) => [g.id, g.name])), v.gruppe);
+  sG.onchange = () => { v.gruppe = sG.value; vorschau(); };
+
+  const trakte = [...new Set(daten.raeume.filter((r) => r.trakt !== null).map((r) => r.trakt))].sort();
+  const sT = auswahl([["", "Alle Trakte"]].concat(trakte.map((t) => [t, "Trakt " + t])), v.trakt);
+  sT.onchange = () => { v.trakt = sT.value; vorschau(); };
+
+  const tagOpt = (v.art === "tag" ? [] : [[0, "Ganze Woche"]])
+    .concat(v.art === "schild" ? [] : [[-1, "Jeder Tag einzeln (5 Seiten)"]])
+    .concat([1, 2, 3, 4, 5].map((t) => [t, TAGE[t] + (datum(t) ? ", " + datum(t) : "")]));
+  const sD = auswahl(tagOpt, v.tag);
+  sD.onchange = () => { v.tag = Number(sD.value); vorschau(); };
+
+  const sS = auswahl([["thema", "Thema"], ["raum", "Raum"], ["kuerzel", "Kürzel"], ["klasse", "Klassenstufe"], ["kosten", "Kosten"]], v.sort);
+
+  const sKo = auswahl([["alle", "Alle"], ["frei", "Nur kostenlose"], ["mit", "Nur mit Kosten"]], v.kosten);
+  sKo.onchange = () => { v.kosten = sKo.value; vorschau(); };
+  sS.onchange = () => { v.sort = sS.value; vorschau(); };
+
+  const fS = input(v.suche, "Thema, Kürzel, Raum …", "search");
+  fS.oninput = () => { v.suche = fS.value; vorschau(); };
+
+  if (v.art !== "leer") z.append(feldMitLabel("Klassenstufe", sK), feldMitLabel("Kosten", sKo));
+  z.append(feldMitLabel("Raumgruppe", sG), feldMitLabel("Trakt", sT), feldMitLabel("Tag", sD));
+  if (v.art !== "schild" && v.art !== "leer") z.appendChild(feldMitLabel("Sortieren nach", sS));
+  fS.placeholder = v.art === "leer" ? "Raumnummer oder Beschreibung …" : "Thema, Kürzel, Raum …";
+  z.appendChild(feldMitLabel("Textsuche", fS));
+  k.appendChild(z);
+
+  if (v.art === "liste") {
+    const sch = el("label", "schalter");
+    sch.style.marginTop = "14px";
+    const cb = input(null, null, "checkbox");
+    cb.checked = v.leerAnhang;
+    cb.onchange = () => { v.leerAnhang = cb.checked; vorschau(); };
+    sch.append(cb, el("span", "", "Übersicht der leeren Räume am Ende anhängen"));
+    k.appendChild(sch);
+    const sch2 = el("label", "schalter");
+    sch2.style.marginTop = "10px";
+    const cb2 = input(null, null, "checkbox");
+    cb2.checked = v.beschr;
+    cb2.onchange = () => { v.beschr = cb2.checked; vorschau(); };
+    sch2.append(cb2, el("span", "", "Kurzbeschreibungen der Projekte anzeigen"));
+    k.appendChild(sch2);
+  }
+
+  const reihe = el("div", "buttonreihe");
+  reihe.appendChild(knopf("Drucken / Als PDF speichern", "", () => {
+    vorschau();
+    drucken(aushangName());
+  }));
+  const info = el("span", "leise");
+  info.style.alignSelf = "center";
+  info.id = "exportInfo";
+  reihe.appendChild(info);
+  k.appendChild(reihe);
+  ziel.appendChild(k);
+
+  const kV = karte("Vorschau");
+  const box = el("div", "vorschau");
+  box.id = "vorschauBox";
+  kV.appendChild(box);
+  ziel.appendChild(kV);
+
+  vorschau();
+}
+
+/* --- Filter --- */
+
+function klassePasst(p, k) {
+  if (k === "alle") return true;
+  if (k === "sek1") return p.klasse_von <= 10 && p.klasse_bis >= 5;
+  if (k === "sek2") return p.klasse_bis >= 11;
+  const n = Number(k);
+  return p.klasse_von <= n && p.klasse_bis >= n;
+}
+
+function raumPasst(nr) {
+  const v = ansicht.export;
+  const r = raumInfo(nr);
+  if (v.gruppe && !gruppenVon(nr).includes(Number(v.gruppe))) return false;
+  if (v.trakt !== "" && (!r || String(r.trakt) !== String(v.trakt))) return false;
+  return true;
+}
+
+function filterText() {
+  const v = ansicht.export;
+  const teile = [];
+  if (v.klasse !== "alle") teile.push(v.klasse === "sek1" ? "Sek I" : v.klasse === "sek2" ? "Sek II" : "Klasse " + v.klasse);
+  if (v.kosten !== "alle") teile.push(v.kosten === "frei" ? "nur kostenlose" : "nur mit Kosten");
+  if (v.gruppe) { const g = daten.gruppen.find((x) => String(x.id) === String(v.gruppe)); if (g) teile.push(g.name); }
+  if (v.trakt !== "") teile.push("Trakt " + v.trakt);
+  if (v.tag > 0 && v.art === "schild") teile.push(TAGE[v.tag]);
+  if (v.suche.trim()) teile.push("Suche „" + v.suche.trim() + "“");
+  return teile.join(" · ");
+}
+
+function stand() {
+  return "Stand: " + new Date().toLocaleDateString("de-DE") + ", " +
+    new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) + " Uhr";
+}
+
+function vertretungHtml(b) {
+  if (!b.krank) return "";
+  return '<small class="d-krank">' + (b.vertretung ? "Vertretung: " + esc(b.vertretung) : "Lehrkraft erkrankt") + "</small>";
+}
+
+/* --- Sortierung --- */
+function sortiere(liste) {
+  const s = ansicht.export.sort;
+  const ex = (b) => (!b ? 2 : istExkursion(b.room) ? 1 : 0);
+  liste.sort((x, y) => {
+    let c = 0;
+    if (s === "raum") c = ex(x.b) - ex(y.b) || (x.b && y.b ? x.b.room.localeCompare(y.b.room, "de", { numeric: true }) : 0);
+    else if (s === "kuerzel") c = x.p.kuerzel.localeCompare(y.p.kuerzel, "de");
+    else if (s === "klasse") c = x.p.klasse_von - y.p.klasse_von || x.p.klasse_bis - y.p.klasse_bis;
+    else if (s === "kosten") c = (Number(x.p.kosten) || 0) - (Number(y.p.kosten) || 0);
+    return c || x.p.thema.localeCompare(y.p.thema, "de") || (x.b && y.b ? x.b.std_von - y.b.std_von : 0);
+  });
+  return liste;
+}
+
+function sortText() {
+  return { thema: "Thema", raum: "Raum", kuerzel: "Kürzel", klasse: "Klassenstufe", kosten: "Kosten" }[ansicht.export.sort];
+}
+
+function tageAuswahl() {
+  const t = ansicht.export.tag;
+  return t === -1 ? [1, 2, 3, 4, 5] : [t];
+}
+
+/* Buchungen eines Tages nach allen Filtern */
+function tagesBuchungen(t) {
+  const v = ansicht.export;
+  const q = v.suche.trim().toLowerCase();
+  return sortiere(daten.buchungen.filter((b) => {
+    if (b.tag !== t || !raumPasst(b.room)) return false;
+    const p = projektVon(b.project_id);
+    return p && (klassePasst(p, v.klasse) && kostenPasst(p)) && projektTreffer(p, q);
+  }).map((b) => ({ b, p: projektVon(b.project_id) })));
+}
+
+/* --- Gesamtliste --- */
+function htmlListe() {
+  const v = ansicht.export;
+  if (v.tag !== 0) {
+    const seiten = tageAuswahl().map(htmlListeTag);
+    return { html: seiten.map((x) => x.html).join(""), anzahl: seiten.reduce((n, x) => n + x.n, 0) + " Einträge auf " + seiten.length + (seiten.length === 1 ? " Seite" : " Seiten"), quer: ansicht.export.beschr };
+  }
+  const q = v.suche.trim().toLowerCase();
+  const raumFilter = v.gruppe || v.trakt !== "";
+  const projekte = sortiere(daten.projekte.filter((p) => {
+    if (!(klassePasst(p, v.klasse) && kostenPasst(p)) || !projektTreffer(p, q)) return false;
+    return !raumFilter || buchungenVon(p.id).some((b) => raumPasst(b.room));
+  }).map((p) => ({ p, b: buchungenVon(p.id)[0] || null }))).map((x) => x.p);
+
+  let h = '<div class="d-seite"><h1>Projektwoche ' + esc(wochenText()) + "</h1>" +
+    '<p class="d-unter">Übersicht aller Projekte · sortiert nach ' + sortText() +
+    (filterText() ? " · " + esc(filterText()) : "") + " · " + stand() + "</p>";
+  h += '<table class="d-tabelle d-liste"><thead><tr><th style="width:100%">Projekt</th><th>Kl.</th><th>Kosten</th><th>Lehrkräfte</th>';
+  for (let t = 1; t <= 5; t++) h += "<th>" + TAGE_KURZ[t] + (datum(t) ? " " + datum(t) : "") + "</th>";
+  h += "</tr></thead><tbody>";
+  projekte.forEach((p) => {
+    const bs = buchungenVon(p.id);
+    h += "<tr><td>" + projektHtml(p) + '</td><td class="eng">' + esc(klassenText(p).replace("Kl. ", "")) + '</td><td class="eng">' + kostenHtml(p) +
+      '</td><td class="eng">' + esc(lehrkraefte(p)) + "</td>";
+    for (let t = 1; t <= 5; t++) {
+      const tb = bs.filter((b) => b.tag === t);
+      h += '<td class="eng">' + (tb.length ? tb.map((b) => '<div class="ort">' + ortKurzHtml(b) +
+          (b.std_von <= 2 && b.std_bis === 6 ? "" : "<small>" + esc(stdKurz(b)) + " Std.</small>") +
+          vertrKurz(b) + "</div>").join("") : '<span class="d-leer">–</span>') + "</td>";
+    }
+    h += "</tr>";
+  });
+  if (!projekte.length) h += '<tr><td colspan="9" class="d-leer">Keine Projekte für diese Auswahl.</td></tr>';
+  h += "</tbody></table></div>";
+  if (v.leerAnhang) h += htmlLeerSeite([1, 2, 3, 4, 5], false);
+  return { html: h, anzahl: projekte.length + " Projekte" + (v.leerAnhang ? " + leere Räume" : ""), quer: true };
+}
+
+/* Tagesversion der Schülerliste */
+function htmlListeTag(t) {
+  const liste = tagesBuchungen(t);
+  let h = '<div class="d-seite"><h1>Projekte am ' + TAGE[t] + (datum(t) ? ", " + datum(t, true) : "") + "</h1>" +
+    '<p class="d-unter">Sortiert nach ' + sortText() + (filterText() ? " · " + esc(filterText()) : "") + " · " + stand() + "</p>";
+  const b2 = ansicht.export.beschr;
+  h += '<table class="d-tabelle d-liste"><thead><tr><th>Raum / Ort</th><th style="width:100%">Projekt</th><th>Kl.</th><th>Kosten</th><th>Lehrkräfte</th><th>Std.</th></tr></thead><tbody>';
+  liste.forEach(({ b, p }) => {
+    const r = raumInfo(b.room);
+    h += '<tr><td class="eng"><div class="ort">' + ortKurzHtml(b) + "</div></td><td>" + projektHtml(p) + '</td><td class="eng">' + esc(klassenText(p).replace("Kl. ", "")) +
+      '</td><td class="eng">' + kostenHtml(p) + "</td><td class=\"eng\">" + esc(lehrkraefte(p)) + vertrKurz(b) + '</td><td class="eng">' + esc(stdKurz(b)) + "</td></tr>";
+  });
+  if (!liste.length) h += '<tr><td colspan="6" class="d-leer">Keine Projekte für diese Auswahl.</td></tr>';
+  h += "</tbody></table>";
+  if (ansicht.export.leerAnhang) h += '<h2 class="d-zwischen">Leere Räume am ' + TAGE[t] + "</h2>" + leerTabelle([t], false);
+  h += "</div>";
+  return { html: h, n: liste.length };
+}
+
+/* --- Türschilder --- */
+function htmlSchilder() {
+  const v = ansicht.export;
+  const q = v.suche.trim().toLowerCase();
+  const raeume = daten.raeume.filter((r) => !r.ist_exkursion && raumPasst(r.nummer)).sort(vergleichRaum);
+  let h = "", anzahl = 0;
+  raeume.forEach((r) => {
+    const bs = daten.buchungen.filter((b) => {
+      if (b.room !== r.nummer || (v.tag && b.tag !== v.tag)) return false;
+      const p = projektVon(b.project_id);
+      if (!p || !(klassePasst(p, v.klasse) && kostenPasst(p))) return false;
+      return !q || projektTreffer(p, q) || r.nummer.toLowerCase().includes(q) || (r.beschreibung || "").toLowerCase().includes(q);
+    });
+    if (!bs.length) return;
+    anzahl++;
+    h += '<div class="d-seite"><div class="d-schild"><div class="raumnr">' + esc(r.nummer) + "</div>" +
+      (r.beschreibung ? '<div class="raumbes">' + esc(r.beschreibung) + "</div>" : "") +
+      '<div class="woche">Projektwoche ' + esc(wochenText()) + "</div></div>" +
+      '<table class="d-tabelle d-schild-tabelle"><thead><tr><th>Tag</th><th>Projekt</th><th>Klassen</th><th>Kosten</th><th>Lehrkräfte</th><th>Zeit</th></tr></thead><tbody>';
+    for (let t = 1; t <= 5; t++) {
+      if (v.tag && t !== v.tag) continue;
+      const tb = bs.filter((b) => b.tag === t).sort((a, c) => a.std_von - c.std_von);
+      if (!tb.length) {
+        h += '<tr><td class="tagzelle">' + TAGE[t] + (datum(t) ? "<small>" + datum(t) + "</small>" : "") +
+          '</td><td colspan="5" class="d-leer">kein Projekt</td></tr>';
+        continue;
+      }
+      tb.forEach((b, i) => {
+        const p = projektVon(b.project_id);
+        h += "<tr>" + (i === 0 ? '<td class="tagzelle" rowspan="' + tb.length + '">' + TAGE[t] +
+          (datum(t) ? "<small>" + datum(t) + "</small>" : "") + "</td>" : "") +
+          '<td class="thema">' + esc(p.thema) + "</td><td>" + esc(klassenText(p).replace("Kl. ", "")) + "</td><td>" + esc(kostenKurz(p)) + "</td><td>" +
+          esc(lehrkraefte(p)) + vertretungHtml(b) + "</td><td>" + esc(stundenText(b.std_von, b.std_bis)) + "</td></tr>";
+      });
+    }
+    h += "</tbody></table></div>";
+  });
+  if (!h) h = '<div class="d-seite"><p class="d-leer">Keine belegten Räume für diese Auswahl.</p></div>';
+  return { html: h, anzahl: anzahl + " Türschilder (je eine Seite)", quer: false };
+}
+
+/* --- Tagesplan --- */
+function htmlTag() {
+  const seiten = tageAuswahl().map(htmlTagSeite);
+  return { html: seiten.map((x) => x.html).join(""), anzahl: seiten.reduce((n, x) => n + x.n, 0) + " Einsätze auf " + seiten.length + (seiten.length === 1 ? " Seite" : " Seiten"), quer: true };
+}
+
+function htmlTagSeite(t) {
+  const liste = tagesBuchungen(t);
+  let h = '<div class="d-seite"><h1>Tagesplan ' + TAGE[t] + (datum(t) ? ", " + datum(t, true) : "") + "</h1>" +
+    '<p class="d-unter">Wer ist wo eingesetzt · sortiert nach ' + sortText() + (filterText() ? " · " + esc(filterText()) : "") + " · " + stand() + "</p>";
+  h += '<table class="d-tabelle"><thead><tr><th>Lehrkraft</th><th>Weitere</th><th>Projekt</th><th>Klassen</th><th>Kosten</th><th>Raum / Ort</th><th>Zeit</th><th>Bemerkung</th></tr></thead><tbody>';
+  liste.forEach(({ b, p }) => {
+    h += "<tr><td><b>" + esc(p.kuerzel) + "</b><small>" + esc(p.name) + "</small></td><td>" + esc(p.mitwirkende || "–") +
+      '</td><td class="thema">' + esc(p.thema) + "</td><td>" + esc(klassenText(p).replace("Kl. ", "")) + "</td><td>" + esc(kostenKurz(p)) + "</td><td>" +
+      esc(ortText(b, true)) + "</td><td>" + esc(stundenText(b.std_von, b.std_bis)) + "</td><td>" +
+      (b.krank ? '<span class="d-krank">krank' + (b.vertretung ? " – Vertretung: " + esc(b.vertretung) : " – Vertretung offen") + "</span>" : "") +
+      "</td></tr>";
+  });
+  if (!liste.length) h += '<tr><td colspan="8" class="d-leer">Keine Einsätze für diese Auswahl.</td></tr>';
+  h += "</tbody></table></div>";
+  return { html: h, n: liste.length };
+}
+
+/* --- Leere Räume --- */
+
+/* Räume (ohne Exkursion, ohne ausgeblendete) nach Raumgruppe, Trakt und – nur im Modus „Leere Räume“ – Textsuche */
+function leerKandidaten(mitSuche) {
+  const q = mitSuche ? ansicht.export.suche.trim().toLowerCase() : "";
+  return daten.raeume.filter((r) => !r.ist_exkursion && !r.versteckt && raumPasst(r.nummer) &&
+    (!q || (r.nummer + " " + (r.beschreibung || "")).toLowerCase().includes(q))).sort(vergleichRaum);
+}
+
+function leerAmTag(t, mitSuche) {
+  const frei = [], teil = [];
+  leerKandidaten(mitSuche).forEach((r) => {
+    const bs = daten.buchungen.filter((b) => b.room === r.nummer && b.tag === t);
+    if (!bs.length) { frei.push(r); return; }
+    const belegt = new Set();
+    bs.forEach((b) => { for (let i = b.std_von; i <= b.std_bis; i++) belegt.add(i); });
+    const freiStd = [2, 3, 4, 5, 6].filter((i) => !belegt.has(i));
+    if (freiStd.length) teil.push({ r, freiStd });
+  });
+  return { frei, teil };
+}
+
+function raumName(r) {
+  return r.nummer + (r.beschreibung ? " (" + r.beschreibung + ")" : "");
+}
+
+function stdBereiche(liste) {
+  const teile = [];
+  let start = liste[0], vor = liste[0];
+  for (let i = 1; i <= liste.length; i++) {
+    if (liste[i] === vor + 1) { vor = liste[i]; continue; }
+    teile.push(start === vor ? start + "." : start + ".–" + vor + ".");
+    start = vor = liste[i];
+  }
+  return teile.join(", ") + " Std.";
+}
+
+function freiNachGebaeude(raeume) {
+  const gruppen = new Map();
+  raeume.forEach((r) => {
+    const g = r.trakt === null ? "Weitere" : "Trakt " + r.trakt;
+    if (!gruppen.has(g)) gruppen.set(g, []);
+    gruppen.get(g).push(raumName(r));
+  });
+  if (!gruppen.size) return '<span class="d-leer">keine</span>';
+  return [...gruppen.entries()].map(([g, l]) => "<b>" + esc(g) + ":</b> " + esc(l.join(", "))).join("<br>");
+}
+
+function leerTabelle(tage, mitSuche) {
+  let h = '<table class="d-tabelle d-leertabelle"><thead><tr><th>Tag</th><th>Ganztägig frei</th><th>Teilweise frei</th></tr></thead><tbody>';
+  tage.forEach((t) => {
+    const { frei, teil } = leerAmTag(t, mitSuche);
+    h += '<tr><td class="tagzelle"><b>' + TAGE[t] + "</b>" + (datum(t) ? "<small>" + datum(t) + "</small>" : "") +
+      "<small>" + frei.length + " frei</small></td><td>" + freiNachGebaeude(frei) + "</td><td>" +
+      (teil.length ? teil.map((x) => esc(raumName(x.r)) + " <small style=\"display:inline\">(" + esc(stdBereiche(x.freiStd)) + ")</small>").join("<br>")
+        : '<span class="d-leer">keine</span>') + "</td></tr>";
+  });
+  return h + "</tbody></table>";
+}
+
+function htmlLeerSeite(tage, mitSuche) {
+  const titel = tage.length === 1 ? "Leere Räume am " + TAGE[tage[0]] + (datum(tage[0]) ? ", " + datum(tage[0], true) : "")
+    : "Leere Räume · Projektwoche " + wochenText();
+  const ft = [];
+  const v = ansicht.export;
+  if (v.gruppe) { const g = daten.gruppen.find((x) => String(x.id) === String(v.gruppe)); if (g) ft.push(g.name); }
+  if (v.trakt !== "") ft.push("Trakt " + v.trakt);
+  if (mitSuche && v.suche.trim()) ft.push("Suche „" + v.suche.trim() + "“");
+  return '<div class="d-seite"><h1>' + esc(titel) + "</h1>" +
+    '<p class="d-unter">Räume ohne Projekt' + (ft.length ? " · " + esc(ft.join(" · ")) : "") + " · ausgeblendete Räume nicht enthalten · " + stand() + "</p>" +
+    leerTabelle(tage, mitSuche) + "</div>";
+}
+
+function htmlLeer() {
+  const v = ansicht.export;
+  const tage = v.tag === 0 ? [1, 2, 3, 4, 5] : tageAuswahl();
+  const seiten = v.tag === -1 ? tage.map((t) => htmlLeerSeite([t], true)) : [htmlLeerSeite(tage, true)];
+  const frei = tage.reduce((n, t) => n + leerAmTag(t, true).frei.length, 0);
+  return { html: seiten.join(""), anzahl: (tage.length === 1 ? frei + " ganztägig freie Räume" : frei + " freie Raum-Tage") + " · " + seiten.length + (seiten.length === 1 ? " Seite" : " Seiten"), quer: false };
+}
+
+/* Druck mit sprechendem Dateinamen: der Browser nimmt den Seitentitel als PDF-Namen */
+function drucken(name) {
+  const d = new Date();
+  const z = (n) => String(n).padStart(2, "0");
+  const stempel = d.getFullYear() + "-" + z(d.getMonth() + 1) + "-" + z(d.getDate()) + "_" + z(d.getHours()) + "-" + z(d.getMinutes());
+  const alt = document.title;
+  document.title = name.replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, "_") + "_" + stempel;
+  const zurueck = () => { document.title = alt; window.removeEventListener("afterprint", zurueck); };
+  window.addEventListener("afterprint", zurueck);
+  window.print();
+  setTimeout(zurueck, 60000);   /* falls afterprint ausbleibt */
+}
+
+function aushangName() {
+  const v = ansicht.export;
+  const art = { liste: "Projektliste", schild: "Tuerschilder", tag: "Tagesplan_Lehrkraefte", leer: "Leere_Raeume" }[v.art];
+  const tag = v.tag === -1 ? "alle_Tage_einzeln" : v.tag > 0 ? TAGE[v.tag] : "Woche";
+  return "Projektwoche_" + art + "_" + tag;
+}
+
+function vorschau() {
+  const v = ansicht.export;
+  const erg = v.art === "schild" ? htmlSchilder() : v.art === "tag" ? htmlTag() : v.art === "leer" ? htmlLeer() : htmlListe();
+  const box = $("vorschauBox");
+  if (box) box.innerHTML = erg.html;
+  $("druck").innerHTML = erg.html;
+  $("seitenstil").textContent = "@page { size: A4 " + (erg.quer ? "landscape" : "portrait") + "; margin: 12mm; }";
+  const info = $("exportInfo");
+  if (info) info.textContent = erg.anzahl + " · " + (erg.quer ? "Querformat" : "Hochformat");
+}
+
+/* =========================================================
+   9 · Einstellungen
+   ========================================================= */
+
+function renderEinstellungen(ziel) {
+  const raster = el("div", "raster2");
+
+  /* Woche */
+  const kW = karte("Projektwoche", "Montag der Projektwoche. Die Daten erscheinen auf allen Seiten und Aushängen.");
+  const fD = input(daten.status.woche_start || "", null, "date");
+  const zW = el("div", "zeile");
+  zW.appendChild(feldMitLabel("Montag", fD));
+  const rW = el("div", "buttonreihe");
+  rW.appendChild(knopf("Speichern", "", async () => {
+    if (!fD.value) { meldung("Bitte ein Datum wählen.", true); return; }
+    if (new Date(fD.value + "T12:00:00").getDay() !== 1) { meldung("Das Datum ist kein Montag.", true); return; }
+    await aktion("pw_admin_set_woche", { p_montag: fD.value }, "Woche gespeichert.");
+  }));
+  kW.append(zW, rW);
+  raster.appendChild(kW);
+
+  /* Tagesziele */
+  const kZ = karte("Tagesziele", "Wie viele Projekte sollen an jedem Tag laufen? Der Zähler erscheint auf der Buchungsseite und in der Planung. 0 = kein Ziel.");
+  const ziele = daten.status.tagesziele || [0, 0, 0, 0, 0];
+  const zz = el("div", "zeile");
+  const felder = [1, 2, 3, 4, 5].map((t) => {
+    const f = input(ziele[t - 1] || 0, null, "number");
+    f.min = 0; f.max = 500;
+    const w = feldMitLabel(TAGE_KURZ[t], f);
+    w.style.flex = "1 1 70px";
+    zz.appendChild(w);
+    return f;
+  });
+  const zAlle = el("div", "zeile feldgruppe");
+  const fAlle = input("", "z. B. 40", "number");
+  fAlle.min = 0;
+  const wA = feldMitLabel("Für alle Tage", fAlle);
+  const bA = knopf("Übernehmen", "zurueck", () => { felder.forEach((f) => { f.value = fAlle.value || 0; }); });
+  bA.style.flex = "0 0 auto";
+  zAlle.append(wA, bA);
+  const rZ = el("div", "buttonreihe");
+  rZ.appendChild(knopf("Speichern", "", () => {
+    const werte = felder.map((f) => Math.max(0, Math.round(Number(f.value) || 0)));
+    aktion("pw_admin_set_ziele", { p_ziele: werte }, "Tagesziele gespeichert.");
+  }));
+  kZ.append(zz, zAlle, rZ);
+  raster.appendChild(kZ);
+
+  /* Phasen: genau ein Modus für die Buchungsseite */
+  const kP = karte("Was zeigt die Buchungsseite?", "Genau ein Modus ist aktiv. Mit „Speichern“ wird er sofort für alle Kollegen sichtbar.");
+  const st = daten.status;
+  const MODI = [
+    ["info",     "⏳ Infoseite",            "„Die Projektplanung startet bald“ – noch nichts eintragbar.", { p_buchung: false, p_plan: false, p_laeuft: false }],
+    ["buchung",  "✏️ Planung offen",        "Kollegen tragen Projekte ein und buchen Räume.",               { p_buchung: true,  p_plan: false, p_laeuft: false }],
+    ["plan",     "📋 Projektplan",          "Nur ansehen: Tagesplan, Wochenübersicht und Raumbelegung.",   { p_buchung: false, p_plan: true,  p_laeuft: false }],
+    ["laeuft",   "🟢 Projektwoche läuft",   "Projekte des aktuellen Tages, Kollegen melden „Projekt voll“.", { p_buchung: false, p_plan: false, p_laeuft: true }]
+  ];
+  const aktuell = st.woche_laeuft ? "laeuft" : st.buchung_offen !== false ? "buchung" : st.plan_sichtbar ? "plan" : "info";
+  let gewaehlt = aktuell;
+  const modusBox = el("div", "modusliste");
+  const zeichneModi = () => {
+    modusBox.innerHTML = "";
+    MODI.forEach(([id, titel, text]) => {
+      const b = el("button", "modus" + (gewaehlt === id ? " an" : ""));
+      b.type = "button";
+      b.setAttribute("aria-pressed", String(gewaehlt === id));
+      b.innerHTML = "<b>" + titel + "</b><span>" + esc(text) + "</span>" + (aktuell === id ? '<em>gerade aktiv</em>' : "");
+      b.onclick = () => { gewaehlt = id; zeichneModi(); };
+      modusBox.appendChild(b);
+    });
+  };
+  zeichneModi();
+
+  const sch2 = el("label", "schalter");
+  sch2.style.marginTop = "16px";
+  const c2 = input(null, null, "checkbox");
+  c2.checked = st.aenderung_offen !== false;
+  sch2.append(c2, el("span", "", "Änderungscodes aktiv"));
+  sch2.querySelector("span").appendChild(el("small", "", "Kollegen können ihr Projekt per Code ändern oder löschen (nur im Modus „Planung offen“ sinnvoll)."));
+
+  const rP = el("div", "buttonreihe");
+  rP.appendChild(knopf("Speichern", "", () => {
+    const m = MODI.find((x) => x[0] === gewaehlt);
+    aktion("pw_admin_set_phasen", Object.assign({ p_aenderung: c2.checked }, m[3]), "Buchungsseite zeigt jetzt: " + m[1].replace(/^\S+\s/, ""));
+  }));
+  kP.append(modusBox, sch2, rP);
+  raster.appendChild(kP);
+
+  /* Zurücksetzen */
+  const kR = karte("Daten zurücksetzen", "Zum Beispiel nach der Projektwoche oder für einen neuen Durchgang. Räume und Gruppen bleiben erhalten.");
+  const rR = el("div", "buttonreihe");
+  rR.appendChild(knopf("Alle Projekte löschen …", "gefahr", () => loeschenOeffnen("projekte")));
+  kR.appendChild(rR);
+  raster.appendChild(kR);
+
+  /* Passwort */
+  const kPw = karte("Admin-Passwort", "Mindestens 8 Zeichen. Der Benutzername bleibt „admin“.");
+  const p1 = input("", null, "password"); p1.autocomplete = "new-password";
+  const p2 = input("", null, "password"); p2.autocomplete = "new-password";
+  const zP = el("div", "zeile");
+  zP.append(feldMitLabel("Neues Passwort", p1), feldMitLabel("Wiederholen", p2));
+  const rPw = el("div", "buttonreihe");
+  rPw.appendChild(knopf("Passwort ändern", "", async () => {
+    if (p1.value.length < 8) { meldung("Mindestens 8 Zeichen.", true); return; }
+    if (p1.value !== p2.value) { meldung("Die Passwörter stimmen nicht überein.", true); return; }
+    const ok = await aktion("pw_admin_set_password", { p_neu: p1.value }, "Passwort geändert.");
+    if (ok !== undefined) { PW = p1.value; speicher("setzen", PW); }
+  }));
+  kPw.append(zP, rPw);
+  raster.appendChild(kPw);
+
+  ziel.appendChild(raster);
+}
+
+/* =========================================================
+   10 · Anmeldung und Start
+   ========================================================= */
+
+async function anmelden(name, pw, still) {
+  try {
+    const ok = await rpc("pw_admin_login", { p_user: name, p_pw: pw });
+    if (!ok) throw new Error("Benutzer oder Passwort falsch.");
+    PW = pw;
+    speicher("setzen", pw);
+    await laden();
+    $("loginKarte").hidden = true;
+    $("app").hidden = false;
+    renderAlles();
+  } catch (e) {
+    $("loginKarte").hidden = false;
+    $("app").hidden = true;
+    if (!still) {
+      $("loginFehler").textContent = e.message;
+      $("loginFehler").hidden = false;
+    }
+  }
+}
+
+function abmelden() {
+  PW = "";
+  speicher("loeschen");
+  document.querySelectorAll("dialog[open]").forEach((d) => d.close());
+  $("app").hidden = true;
+  $("loginKarte").hidden = false;
+  $("lPw").value = "";
+}
+
+function bedienung() {
+  $("btnLogin").onclick = () => anmelden($("lName").value.trim(), $("lPw").value);
+  $("lPw").onkeydown = (e) => { if (e.key === "Enter") $("btnLogin").click(); };
+  $("btnAbmelden").onclick = abmelden;
+  $("btnNeuLaden").onclick = async () => {
+    try { await laden(); renderAlles(); meldung("Aktualisiert."); } catch (e) { meldung(e.message, true); }
+  };
+
+  $("pdSpeichern").onclick = projektSpeichern;
+  $("pdLoeschen").onclick = async () => {
+    const p = projektVon(offenesProjekt);
+    if (!p || !confirm("Projekt „" + p.thema + "“ mit allen Tagen endgültig löschen?")) return;
+    $("projektDialog").close();
+    await aktion("pw_admin_project_delete", { p_id: p.id }, "Projekt gelöscht.");
+  };
+  $("pdCode").onclick = async () => {
+    const p = projektVon(offenesProjekt);
+    if (!p || !confirm("Neuen Änderungscode für „" + p.thema + "“ erzeugen? Ein alter Code wird damit ungültig.")) return;
+    try {
+      const code = await admin("pw_admin_project_new_code", { p_id: p.id });
+      const box = $("pdCodeBox");
+      box.innerHTML = "";
+      box.appendChild(el("hr", "trenner"));
+      box.appendChild(el("p", "", "Neuer Code für " + p.kuerzel + " – bitte weitergeben:"));
+      box.appendChild(el("div", "codeanzeige", code));
+      box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    } catch (e) { meldung(e.message, true); }
+  };
+  $("projektDialog").addEventListener("close", () => { offenesProjekt = null; });
+
+  $("bdSpeichern").onclick = buchungSpeichern;
+  $("abwSpeichern").onclick = abwSpeichern;
+  $("ldOk").onclick = loeschenAusfuehren;
+  $("ldPw").onkeydown = (e) => { if (e.key === "Enter") loeschenAusfuehren(); };
+  $("abwAnzahl").onkeydown = (e) => { if (e.key === "Enter") abwSpeichern(); };
+  $("abwSuche").oninput = renderAbwListe;
+  vertretungsFeld($("kdVertretung"), 0, "");
+  $("kdVertretung").addEventListener("focus", () => vertretungVorschlaege(krankTag, krankAusser));
+  $("ldlSpeichern").onclick = lehrerSpeichern;
+  $("ldlLoeschen").onclick = async () => {
+    if (!confirm("Lehrkraft " + lehrerAlt + " aus der Liste löschen? Projekte bleiben erhalten.")) return;
+    const ok = await aktion("pw_admin_lehrer_delete", { p_kuerzel: lehrerAlt }, "Lehrkraft gelöscht.");
+    if (ok !== undefined) $("lehrerDialog").close();
+  };
+  $("rdSuche").oninput = (e) => { rw.suche = e.target.value; renderRaumwahl(); };
+  $("rdNurFrei").onchange = (e) => { rw.nurFrei = e.target.checked; renderRaumwahl(); };
+  $("kdSpeichern").onclick = () => krankSpeichern(true);
+  $("kdAufheben").onclick = () => krankSpeichern(false);
+  $("kdVertretung").onkeydown = (e) => { if (e.key === "Enter") krankSpeichern(true); };
+
+  document.querySelectorAll("dialog").forEach((d) => {
+    d.addEventListener("click", (e) => { if (e.target === d) d.close(); });
+  });
+  document.querySelectorAll("[data-schliessen]").forEach((b) => {
+    b.addEventListener("click", () => b.closest("dialog").close());
+  });
+
+  window.addEventListener("beforeprint", () => { if (reiter === "export") vorschau(); });
+}
+
+/* Belegung live halten: jede Minute neu laden, solange die Belegungsansicht offen ist */
+setInterval(async () => {
+  if (!PW || reiter !== "planung" || ansicht.plan.modus !== "belegung" || document.querySelector("dialog[open]")) return;
+  try { await laden(); renderAlles(); } catch (e) { /* nächster Versuch */ }
+}, 60000);
+
+async function start() {
+  bedienung();
+  const gemerkt = speicher("lesen");
+  if (gemerkt) await anmelden("admin", gemerkt, true);
+  else $("loginKarte").hidden = false;
+}
+
+start();
+</script>
+</body>
+</html>
