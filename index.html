@@ -325,8 +325,20 @@
         .badge { padding: 3px 9px; font-size: 11.5px; }
         .help-item-description { font-size: 14px; line-height: 1.5; margin-bottom: 8px; }
 
+        /* Einheitliche Karten */
+        .help-item { display: flex; flex-direction: column; }
+        .help-item h3 { color: #003F7F; }
+        .help-item-description { color: #4b5563; }
+        .help-item-description strong { color: #1f2937; }
+        .help-item-list { margin: -2px 0 8px 20px; color: #4b5563; font-size: 14px; line-height: 1.5; }
+        .help-item-link, .help-item-links { margin-top: auto; }
+        .help-item-links { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+        .help-item-links .help-item-link { margin-top: 0; }
+        .badge-tag { background: #f3f4f6; color: #4b5563; }
+        .badge-type-wip { background: #f3f4f6; color: #6b7280; font-style: italic; }
+
         /* Karten-Raster: ab 900px zweispaltig */
-        .help-items { display: grid; grid-template-columns: 1fr; gap: 12px; align-items: start; }
+        .help-items { display: grid; grid-template-columns: 1fr; gap: 12px; align-items: stretch; }
         .help-items > :not(.help-item) { grid-column: 1 / -1; }
         @media (min-width: 900px) {
             .help-items { grid-template-columns: 1fr 1fr; }
@@ -362,7 +374,7 @@
                     <p class="header-subtitle">Anleitungen und Unterstützung für IServ, WebUntis & LEB</p>
                 </div>
                 <!-- Versionsnummer: bei jeder Änderung hochzählen -->
-                <span class="version">v1.3 · 26.11.2026</span>
+                <span class="version">v1.4 · 26.11.2026</span>
             </div>
 
             <!-- Externe Links -->
@@ -482,57 +494,52 @@
                 <p class="help-item-description">
                     Während der Projektwoche zeigt das Tool die Projekte des Tages – dort meldet ihr, sobald euer Projekt voll ist.
                 </p>
-                <a href="projektwoche/index.html" class="help-item-link">
-                    zur Projektplanung →
-                </a>
+                <a href="projektwoche/index.html" class="help-item-link">zur Projektplanung →</a>
             </div>
 
-		 <div class="help-item" 
+            <div class="help-item"
                  data-category="LEB" 
                  data-keywords="LEB Zeugnis Bemerkungen Druck"
                  data-type="link">
-                <h3>LEB - Infos zum Zeugnisdruck</h3>
+                <h3>LEB – Infos zum Zeugnisdruck</h3>
                 <div class="help-item-meta">
                     <span class="badge badge-category">LEB</span>
-                </div>
-               
-                   <b>Aktuelle Hinweise zu LEB</b> 
-					<br>
-					Vor der Freiage zum Druck der Zeugnisse unbedingt kontrollieren:<br>
-					- Name, Geburtsort<br>
-					- Fehltage korrekt?<br>
-					- epochale Fächer korrekt markiert?<br>
-					- Versetzungsbemerkung eingetragen (Textbaustein oder! manuell) <br>
-                            </div>
-
-
-			
-            <div class="help-item" 
-                 data-category="KI" 
-                 data-keywords="KI AI künstliche Intelligenz Telli"
-                 data-type="link">
-                <h3>KI - Telli</h3>
-                <div class="help-item-meta">
-                    <span class="badge badge-category">KI</span>
-                    <span class="badge badge-type-link">Externer Link</span>
+                    <span class="badge badge-type-link">Hinweis</span>
                 </div>
                 <p class="help-item-description">
-                    Offizielle Seite des Bildungsportal Niedersachsen mit allgemeinen Informationen zu Telli.
+                    <strong>Aktuelle Hinweise:</strong> Vor der Freigabe zum Druck der Zeugnisse unbedingt kontrollieren:
                 </p>
-                <a href="https://bildungsportal-niedersachsen.de/digitale-welt/kuenstliche-intelligenz-ki/telli-in-niedersachsen" class="help-item-link" target="_blank">
-                    zum Bildungsportal →
-                </a><br><br>
-                
-                <p class="help-item-description">
-                    Telli hier starten, moin.schule login nötig.
-                </p>
-                <a href="https://chat.telli.schule/" class="help-item-link" target="_blank">
-                    zu Telli →
-                </a>                
+                <ul class="help-item-list">
+                    <li>Name, Geburtsort</li>
+                    <li>Fehltage korrekt?</li>
+                    <li>Epochale Fächer korrekt markiert?</li>
+                    <li>Versetzungsbemerkung eingetragen (Textbaustein oder manuell)?</li>
+                </ul>
             </div>
 
 
-  			 <div class="help-item" 
+			
+            <div class="help-item"
+                 data-category="KI" 
+                 data-keywords="KI AI künstliche Intelligenz Telli"
+                 data-type="link">
+                <h3>KI – Telli</h3>
+                <div class="help-item-meta">
+                    <span class="badge badge-category">KI</span>
+                    <span class="badge badge-type-link">Link</span>
+                </div>
+                <p class="help-item-description">
+                    KI-Assistent für Lehrkräfte in Niedersachsen. Zum Starten ist ein moin.schule-Login nötig; allgemeine
+                    Informationen gibt es auf dem Bildungsportal.
+                </p>
+                <div class="help-item-links">
+                    <a href="https://chat.telli.schule/" class="help-item-link" target="_blank">Telli starten →</a>
+                    <a href="https://bildungsportal-niedersachsen.de/digitale-welt/kuenstliche-intelligenz-ki/telli-in-niedersachsen" class="help-item-link" target="_blank">zum Bildungsportal →</a>
+                </div>                
+            </div>
+
+
+            <div class="help-item"
                  data-category="IServ" 
                  data-keywords="Gruppen anlegen in IServ"
                  data-type="pdf">
@@ -540,14 +547,11 @@
                 <div class="help-item-meta">
                     <span class="badge badge-category">IServ</span>
                     <span class="badge badge-type-pdf">PDF</span>
-                    <span class="badge badge-type-html">Anleitung</span>
                 </div>
                 <p class="help-item-description">
                     Schritt-für-Schritt Anleitung, wie Gruppen in IServ angelegt und Schüler zugeordnet werden.
                 </p>
-                <a href="https://kgsschwarmstedt.de/iserv/file/-/Groups/Lehrer/Anleitungen%20und%20Hilfen/FB%20Digital/pdfs/Kurzanleitung%20-%20Gruppen%20in%20IServ.pdf" class="help-item-link" target="_blank">
-                    Anleitung öffnen →
-                </a>
+                <a href="https://kgsschwarmstedt.de/iserv/file/-/Groups/Lehrer/Anleitungen%20und%20Hilfen/FB%20Digital/pdfs/Kurzanleitung%20-%20Gruppen%20in%20IServ.pdf" class="help-item-link" target="_blank">Anleitung öffnen →</a>
             </div>
 
 
@@ -555,201 +559,180 @@
 
 
             <!-- Beispiel: HTML-Anleitung -->
-            <div class="help-item" 
+            <div class="help-item"
                  data-category="IServ" 
                  data-keywords="IServ Störungen Störungsmeldung Probleme melden Meldung Defekt Tafel"
                  data-type="html">
                 <h3>Störungsmeldung in IServ verfassen</h3>
                 <div class="help-item-meta">
                     <span class="badge badge-category">IServ</span>
-                    <span class="badge badge-type-html">Anleitung</span>
-                     <span class="badge badge-type-pdf">PDF</span>
-                    <span class="badge badge-type-html">Störung</span>
+                    <span class="badge badge-type-pdf">PDF</span>
+                    <span class="badge badge-tag">Störung</span>
                 </div>
                 <p class="help-item-description">
                     Störungen jeglicher Art, egal ob WLAN oder Tafel, können in IServ direkt per Störungsmeldung gemeldet werden.
                 </p>
-                <a href="https://kgsschwarmstedt.de/iserv/file/-/Groups/Lehrer/Anleitungen%20und%20Hilfen/FB%20Digital/pdfs/Kurzanleitung - Störungsmeldungen.pdf" class="help-item-link" target="_blank">
-                    Anleitung lesen →
-                </a>
+                <a href="https://kgsschwarmstedt.de/iserv/file/-/Groups/Lehrer/Anleitungen%20und%20Hilfen/FB%20Digital/pdfs/Kurzanleitung - Störungsmeldungen.pdf" class="help-item-link" target="_blank">Anleitung öffnen →</a>
             </div>
 
             <!-- Beispiel: Externer Link -->
-            <div class="help-item" 
+            <div class="help-item"
                  data-category="LEB" 
                  data-keywords="leb zeugnis zeugnisse erstellen noten noteneingabe"
                  data-type="link">
-                <h3>LEB Dokumentation</h3>
+                <h3>LEB – Dokumentation</h3>
                 <div class="help-item-meta">
                     <span class="badge badge-category">LEB</span>
-                    <span class="badge badge-type-link">Externer Link</span>
+                    <span class="badge badge-type-link">Link</span>
                 </div>
                 <p class="help-item-description">
-                    Offizielle Support-Seite von LEB.
+                    Offizielle Support-Seite (Wiki) des LEB-Herstellers.
                 </p>
-                <a href="https://leb-software.de/index.php?page=wiki" class="help-item-link" target="_blank">
-                    Zum LEB-Wiki →
-                </a>
+                <a href="https://leb-software.de/index.php?page=wiki" class="help-item-link" target="_blank">zum LEB-Wiki →</a>
             </div>
 
 
 
 <!-- WLAN -->
-            <div class="help-item" 
+            <div class="help-item"
                  data-category="Allgemein" 
                  data-keywords="wlan wifi internet verbindung netzwerk"
                  data-type="pdf">
                 <h3>WLAN-Zugang einrichten</h3>
                 <div class="help-item-meta">
                     <span class="badge badge-category">Allgemein</span>
+                    <span class="badge badge-type-wip">in Arbeit</span>
                 </div>
                 <p class="help-item-description">
-                    Verbindung zum Schul-WLAN auf verschiedenen Geräten einrichten, Anleitungen in Bearbeitung
+                    Verbindung zum Schul-WLAN auf verschiedenen Geräten einrichten – Anleitungen sind in Bearbeitung.
                 </p>
             </div>
             
             <!-- IServ - Videokonferenzen einrichten -->
-            <div class="help-item" 
+            <div class="help-item"
                  data-category="IServ" 
                  data-keywords="IServ Videokonferenz VK einrichten erstellen erzeugen Tafel"
                  data-type="html">
-                 <h3>Videokonferenzen in IServ erstellen</h3>
+                <h3>Videokonferenzen in IServ erstellen</h3>
                 <div class="help-item-meta">
                     <span class="badge badge-category">IServ</span>
-                    <span class="badge badge-type-html">Anleitung</span>
-                     <span class="badge badge-type-pdf">PDF</span>
-                    <span class="badge badge-type-html">Videokonferenz</span>
+                    <span class="badge badge-type-pdf">PDF</span>
+                    <span class="badge badge-tag">Videokonferenz</span>
                 </div>
                 <p class="help-item-description">
                     Eine kurze Anleitung zur Einrichtung eigener Videokonferenzen. Diese eignen sich nicht nur für den Distanzunterricht, sondern sind auch
                     praktisch um von einem Endgerät Inhalte an die Tafeln zu übertragen.
                 </p>
-                <a href="https://kgsschwarmstedt.de/iserv/file/-/Groups/Lehrer/Anleitungen%20und%20Hilfen/FB%20Digital/pdfs/Kurzanleitung - IServ Videokonferenzen einrichten.pdf" class="help-item-link" target="_blank">
-                    Anleitung lesen →
-                </a>
+                <a href="https://kgsschwarmstedt.de/iserv/file/-/Groups/Lehrer/Anleitungen%20und%20Hilfen/FB%20Digital/pdfs/Kurzanleitung - IServ Videokonferenzen einrichten.pdf" class="help-item-link" target="_blank">Anleitung öffnen →</a>
             </div>
             
              <!-- IServ - Distanzunterricht - Videokonferenzen einrichten und Aufgaben erstellen -->
-            <div class="help-item" 
+            <div class="help-item"
                  data-category="IServ" 
                  data-keywords="IServ Videokonferenz VK einrichten erstellen erzeugen Distanz Unterricht Aufgaben Modul"
                  data-type="html">
-                 <h3>Videokonferenzen und Aufgabenmodul im Distanzunterricht einsetzen</h3>
+                <h3>Videokonferenzen und Aufgabenmodul im Distanzunterricht einsetzen</h3>
                 <div class="help-item-meta">
                     <span class="badge badge-category">IServ</span>
-                    <span class="badge badge-type-html">Anleitung</span>
-                     <span class="badge badge-type-pdf">PDF</span>
-                    <span class="badge badge-type-html">Videokonferenz</span>
-                    <span class="badge badge-type-html">Aufgabenmodul</span>
+                    <span class="badge badge-type-pdf">PDF</span>
+                    <span class="badge badge-tag">Videokonferenz</span>
+                    <span class="badge badge-tag">Aufgabenmodul</span>
                 </div>
                 <p class="help-item-description">
-                    Eine kurze Anleitung für den Distanzunterricht - Videokonferenzen einrichten und Aufgabenmodul
+                    Eine kurze Anleitung für den Distanzunterricht: Videokonferenzen einrichten und das Aufgabenmodul nutzen.
                 </p>
-                <a href="https://kgsschwarmstedt.de/iserv/file/-/Groups/Lehrer/Anleitungen%20und%20Hilfen/FB%20Digital/pdfs/Kurzanleitung - IServ Videokonferenzen und Aufgaben.pdf" class="help-item-link" target="_blank">
-                    Anleitung lesen →
-                </a>
+                <a href="https://kgsschwarmstedt.de/iserv/file/-/Groups/Lehrer/Anleitungen%20und%20Hilfen/FB%20Digital/pdfs/Kurzanleitung - IServ Videokonferenzen und Aufgaben.pdf" class="help-item-link" target="_blank">Anleitung öffnen →</a>
             </div>
 
  <!-- IServ - Videokonferenzteilnahme -->
-            <div class="help-item" 
+            <div class="help-item"
                  data-category="IServ" 
                  data-keywords="IServ Videokonferenz VK Teilnahme beitreten"
                  data-type="html">
-                 <h3>Teilnahme an Videokonferenzen</h3>
+                <h3>Teilnahme an Videokonferenzen</h3>
                 <div class="help-item-meta">
                     <span class="badge badge-category">IServ</span>
-                    <span class="badge badge-type-html">Anleitung</span>
-                     <span class="badge badge-type-pdf">PDF</span>
-                    <span class="badge badge-type-html">Videokonferenz</span>
+                    <span class="badge badge-type-pdf">PDF</span>
+                    <span class="badge badge-tag">Videokonferenz</span>
                 </div>
                 <p class="help-item-description">
-                    Eine kurze Anleitung für die Teilnahme an einer Videokonferenz
+                    Eine kurze Anleitung für die Teilnahme an einer Videokonferenz.
                 </p>
-                <a href="https://kgsschwarmstedt.de/iserv/file/-/Groups/Lehrer/Anleitungen%20und%20Hilfen/FB%20Digital/pdfs/Kurzanleitung - Teilnahme an Videokonferenzen.pdf" class="help-item-link" target="_blank">
-                    Anleitung lesen →
-                </a>
+                <a href="https://kgsschwarmstedt.de/iserv/file/-/Groups/Lehrer/Anleitungen%20und%20Hilfen/FB%20Digital/pdfs/Kurzanleitung - Teilnahme an Videokonferenzen.pdf" class="help-item-link" target="_blank">Anleitung öffnen →</a>
             </div>
             
              <!-- iPad - Speicherbereinigung -->
-            <div class="help-item" 
+            <div class="help-item"
                  data-category="iPad" 
                  data-keywords="iPad Speicher Update Problem"
                  data-type="html">
-                 <h3>iPad Speicherbereinigung für Updates</h3>
+                <h3>iPad Speicherbereinigung für Updates</h3>
                 <div class="help-item-meta">
                     <span class="badge badge-category">iPad</span>
-                    <span class="badge badge-type-html">Anleitung</span>
-                     <span class="badge badge-type-pdf">PDF</span>
-                    <span class="badge badge-type-html">Updates</span>
+                    <span class="badge badge-type-pdf">PDF</span>
+                    <span class="badge badge-tag">Updates</span>
                 </div>
                 <p class="help-item-description">
                     Eine kurze Anleitung zur Freigabe von Speicher im iPad, in der Hoffnung ein Update doch noch durchführen zu können. 
-                    Leider werden die Upadtes immer größer, der iPad Speicher ist aber sehr begrenzt. Selbst ein komplett geleertes iPad bekommt kaum
+                    Leider werden die Updates immer größer, der iPad Speicher ist aber sehr begrenzt. Selbst ein komplett geleertes iPad bekommt kaum
                     noch das Update installiert - Apples Verkaufsstrategie für Cloud-Abos...
                 </p>
-                <a href="https://kgsschwarmstedt.de/iserv/file/-/Groups/Lehrer/Anleitungen%20und%20Hilfen/FB%20Digital/pdfs/FB_Digi_iPad_Speicherbereinigung.pdf" class="help-item-link" target="_blank">
-                    Anleitung lesen →
-                </a>
+                <a href="https://kgsschwarmstedt.de/iserv/file/-/Groups/Lehrer/Anleitungen%20und%20Hilfen/FB%20Digital/pdfs/FB_Digi_iPad_Speicherbereinigung.pdf" class="help-item-link" target="_blank">Anleitung öffnen →</a>
             </div>
             
              <!-- iPad - Edupool mit Safari nutzen -->
-            <div class="help-item" 
+            <div class="help-item"
                  data-category="iPad EduPool" 
                  data-keywords="iPad Edupool Problem"
                  data-type="html">
-                 <h3>Edupool auf dem iPad nutzen</h3>
+                <h3>Edupool auf dem iPad nutzen</h3>
                 <div class="help-item-meta">
                     <span class="badge badge-category">iPad</span>
-                    <span class="badge badge-type-html">Anleitung</span>
-                     <span class="badge badge-type-pdf">PDF</span>
-                    <span class="badge badge-type-html">EduPool</span>
+                    <span class="badge badge-type-pdf">PDF</span>
+                    <span class="badge badge-tag">EduPool</span>
                 </div>
                 <p class="help-item-description">
                     Eine kurze Anleitung zur Nutzung von Edupool auf dem iPad. Edupool wird auf dem iPad beim Start aus IServ nicht ausgeführt, da es 
                     durch Safari blockiert wird. Diese Anleitung zeigt die Einstellung für Safari, damit Edupool ordnungsgemäß startet.
                 </p>
-                <a href="https://kgsschwarmstedt.de/iserv/file/-/Groups/Lehrer/Anleitungen%20und%20Hilfen/FB%20Digital/pdfs/FB Digi_Edupool mit iPad und Board.pdf" class="help-item-link" target="_blank">
-                    Anleitung lesen →
-                </a>
+                <a href="https://kgsschwarmstedt.de/iserv/file/-/Groups/Lehrer/Anleitungen%20und%20Hilfen/FB%20Digital/pdfs/FB Digi_Edupool mit iPad und Board.pdf" class="help-item-link" target="_blank">Anleitung öffnen →</a>
             </div>
 
 
 
 
  <!-- iPad - Microsoft -->
-            <div class="help-item" 
+            <div class="help-item"
                  data-category="iPad Lizenzen" 
                  data-keywords="ipad Microsoft Lizenzen Office"
                  data-type="html">
-                 <h3>Microsoft Office Lizenzen verfügbar</h3>
+                <h3>Microsoft Office Lizenzen verfügbar</h3>
                 <div class="help-item-meta">
                     <span class="badge badge-category">iPad</span>
-                    <span class="badge badge-type-html">Apps</span>
-                     <span class="badge badge-type-pdf">Microsoft Office</span>
-                    <span class="badge badge-type-html">Lizenzen</span>
+                    <span class="badge badge-type-link">Link</span>
+                    <span class="badge badge-tag">Microsoft Office</span>
+                    <span class="badge badge-tag">Lizenzen</span>
                 </div>
                 <p class="help-item-description">
                     Microsoft Office ist als App und als PC Version durch die IT des Heidekreises verfügbar. Es ist lediglich eine Registrierung nötig, 
                     um eine Lizenz zugewiesen zu bekommen.
                 </p>
-                <a href="https://kgsschwarmstedt.de/iserv/know/entry/show/23" class="help-item-link" target="_blank">
-                    Anleitung lesen →
-                </a>
+                <a href="https://kgsschwarmstedt.de/iserv/know/entry/show/23" class="help-item-link" target="_blank">Anleitung öffnen →</a>
             </div>
 
 
 
 <!-- Lizenzen -->
-            <div class="help-item" 
+            <div class="help-item"
                  data-category="Lizenzen iPad" 
                  data-keywords="ipad Software Microsoft Lizenzen Office AbiBox Schulbuchverlag Unterrichtsassisten"
                  data-type="html">
-                 <h3>Lizenzen für Lehrer</h3>
+                <h3>Lizenzen für Lehrer</h3>
                 <div class="help-item-meta">
                     <span class="badge badge-category">iPad</span>
-                    <span class="badge badge-type-html">Apps</span>
-                     <span class="badge badge-type-pdf">Unterrichtsassistenten</span>
-                    <span class="badge badge-type-html">Lizenzen</span>
+                    <span class="badge badge-type-wip">in Arbeit</span>
+                    <span class="badge badge-tag">Unterrichtsassistenten</span>
+                    <span class="badge badge-tag">Lizenzen</span>
                 </div>
                 <p class="help-item-description">
                     Hier entsteht eine Übersicht über vorhandene Lizenzen mit dem jeweiligen Ansprechpartner.
@@ -761,85 +744,74 @@
 
 <!-- Datenbereich für LEB -->
 <!-- LEB - AV SV -->
-            <div class="help-item" 
+            <div class="help-item"
                  data-category="LEB Klassenlehrer" 
                  data-keywords="LEB Arbeitsverhalten Sozialverhalten Arbeits Sozial Klassenlehrer AV SV"
                  data-type="html">
-                 <h3>LEB - Arbeits- und Sozialverhalten eingeben</h3>
+                <h3>LEB – Arbeits- und Sozialverhalten eingeben</h3>
                 <div class="help-item-meta">
                     <span class="badge badge-category">LEB</span>
-                    <span class="badge badge-type-html">Anleitung</span>
-                     <span class="badge badge-type-pdf">PDF</span>
-                    <span class="badge badge-type-html">Klassenlehrer</span>
-                    <span class="badge badge-type-html">AV SV</span>
+                    <span class="badge badge-type-pdf">PDF</span>
+                    <span class="badge badge-tag">Klassenlehrer</span>
+                    <span class="badge badge-tag">AV SV</span>
                 </div>
                 <p class="help-item-description">
-                    LEB - AV SV Eingabe
+                    Eingabe der Vorschläge zum Arbeits- und Sozialverhalten (AV/SV).
                 </p>
-                <a href="https://kgsschwarmstedt.de/iserv/file/-/Groups/Lehrer/Anleitungen%20und%20Hilfen/FB%20Digital/pdfs/LEB/FB_Digi_LEB_AV-SV-Vorschlag eingeben.pdf" class="help-item-link" target="_blank">
-                    Anleitung lesen →
-                </a>
+                <a href="https://kgsschwarmstedt.de/iserv/file/-/Groups/Lehrer/Anleitungen%20und%20Hilfen/FB%20Digital/pdfs/LEB/FB_Digi_LEB_AV-SV-Vorschlag eingeben.pdf" class="help-item-link" target="_blank">Anleitung öffnen →</a>
             </div>
 
 <!-- LEB - Erste Schritt -->
-            <div class="help-item" 
+            <div class="help-item"
                  data-category="LEB Klassenlehrer" 
                  data-keywords="LEB Erste Schritte"
                  data-type="html">
-                 <h3>LEB - Erste Schritte</h3>
+                <h3>LEB – Erste Schritte</h3>
                 <div class="help-item-meta">
                     <span class="badge badge-category">LEB</span>
-                    <span class="badge badge-type-html">Anleitung</span>
-                     <span class="badge badge-type-pdf">PDF</span>
-                    <span class="badge badge-type-html">Klassenlehrer</span>
-                    <span class="badge badge-type-html">AV SV</span>
+                    <span class="badge badge-type-pdf">PDF</span>
+                    <span class="badge badge-tag">Klassenlehrer</span>
                 </div>
                 <p class="help-item-description">
-                    LEB - Erste Schritte beim Start mit LEB
+                    Die ersten Schritte beim Start mit LEB.
                 </p>
-                <a href="https://kgsschwarmstedt.de/iserv/file/-/Groups/Lehrer/Anleitungen%20und%20Hilfen/FB%20Digital/pdfs/LEB/FB_Digi_LEB_erste Schritte.pdf" class="help-item-link" target="_blank">
-                    Anleitung lesen →
-                </a>
+                <a href="https://kgsschwarmstedt.de/iserv/file/-/Groups/Lehrer/Anleitungen%20und%20Hilfen/FB%20Digital/pdfs/LEB/FB_Digi_LEB_erste Schritte.pdf" class="help-item-link" target="_blank">Anleitung öffnen →</a>
             </div>
             
 <!-- LEB - Klassenlehrereingaben -->
-            <div class="help-item" 
+            <div class="help-item"
                  data-category="LEB Klassenlehrer" 
                  data-keywords="LEB Klassenlehrer Eingaben Konferenzen Zeugnis Vorbereitung"
                  data-type="html">
-                 <h3>LEB - Vorbereitung der Zeugniskonferenzen für Klassenlehrkräfte</h3>
+                <h3>LEB – Vorbereitung der Zeugniskonferenzen für Klassenlehrkräfte</h3>
                 <div class="help-item-meta">
                     <span class="badge badge-category">LEB</span>
-                    <span class="badge badge-type-html">Anleitung</span>
-                     <span class="badge badge-type-pdf">PDF</span>
-                    <span class="badge badge-type-html">Klassenlehrer</span>
-                    <span class="badge badge-type-html">Zeugnisse</span>
+                    <span class="badge badge-type-pdf">PDF</span>
+                    <span class="badge badge-tag">Klassenlehrer</span>
+                    <span class="badge badge-tag">Zeugnisse</span>
                 </div>
                 <p class="help-item-description">
-                    LEB - Klassenlehrereingaben: Dieses PDF dient als Anleitung für Klassenlehrkräfte zur Nutzung des Systems für Bewertungen, 
+                    Dieses PDF dient als Anleitung für Klassenlehrkräfte zur Nutzung des Systems für Bewertungen, 
                     Fehltage und Zeugnisse. Es beschreibt den Zugriff auf Klassen- und Schülerdaten, Mehrfachbewertungen, Import von Fehltagen
                      aus WebUntis sowie Generierung von Berichten wie Zeugnisausgaben, Konferenzübersichten und Leistungslisten als PDF oder Excel. 
                      Eine umfangreiche Liste von Textbausteinen für Bemerkungen zu Versetzungen, Förderungen, Berufsorientierung und 
                      Verhaltensnoten wird in LEB bereitgestellt.
                    
                 </p>
-                <a href="https://kgsschwarmstedt.de/iserv/file/-/Groups/Lehrer/Anleitungen%20und%20Hilfen/FB%20Digital/pdfs/LEB/FB_Digi_LEB_Klassenlehrereingaben.pdf" class="help-item-link" target="_blank">
-                    Anleitung lesen →
-                </a>
+                <a href="https://kgsschwarmstedt.de/iserv/file/-/Groups/Lehrer/Anleitungen%20und%20Hilfen/FB%20Digital/pdfs/LEB/FB_Digi_LEB_Klassenlehrereingaben.pdf" class="help-item-link" target="_blank">Anleitung öffnen →</a>
             </div>
 
 <!-- LEB - Zeugnisprüfung -->
-            <div class="help-item" 
+            <div class="help-item"
                  data-category="LEB Klassenlehrer" 
                  data-keywords="LEB Klassenlehrer Eingaben Konferenzen Zeugnis Vorbereitung Kontrolle"
                  data-type="html">
-                 <h3>LEB - Zeugnisprüfung</h3>
+                <h3>LEB – Zeugnisprüfung</h3>
                 <div class="help-item-meta">
                     <span class="badge badge-category">LEB</span>
-                    <span class="badge badge-type-html">Anleitung</span>
-                     <span class="badge badge-type-pdf">PDF</span>
-                    <span class="badge badge-type-html">Klassenlehrer</span>
-                    <span class="badge badge-type-html">Zeugnisse</span>
+                    <span class="badge badge-type-pdf">PDF</span>
+                    <span class="badge badge-tag">Klassenlehrer</span>
+                    <span class="badge badge-tag">Zeugnisse</span>
                 </div>
                 <p class="help-item-description">
                     Dieses PDF ist ein Kontrollbogen für die Zeugnisüberprüfung, der wesentliche Punkte in sechs Kategorien auflistet: 
@@ -848,9 +820,7 @@
                     BO-Maßnahmen, Versetzungshinweise). Weitere Prüfpunkte betreffen Rechtschreibung/Formalitäten (keine Fehler oder Lücken) 
                     und Abschluss (vollständige Prüfung durch Klassenlehrer).
                 </p>
-                <a href="https://kgsschwarmstedt.de/iserv/file/-/Groups/Lehrer/Anleitungen%20und%20Hilfen/FB%20Digital/pdfs/LEB/FB_Digi_LEB_Zeugnisprüfung_Kontrollpunkte.pdf" class="help-item-link" target="_blank">
-                    Anleitung lesen →
-                </a>
+                <a href="https://kgsschwarmstedt.de/iserv/file/-/Groups/Lehrer/Anleitungen%20und%20Hilfen/FB%20Digital/pdfs/LEB/FB_Digi_LEB_Zeugnisprüfung_Kontrollpunkte.pdf" class="help-item-link" target="_blank">Anleitung öffnen →</a>
             </div>
 
 
@@ -965,7 +935,7 @@
                 
                 // Anzeigen oder verstecken
                 if (categoryMatch && searchMatch) {
-                    item.style.display = 'block';
+                    item.style.display = '';
                     visibleCount++;
                 } else {
                     item.style.display = 'none';
